@@ -26,10 +26,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pgarrett-scripps/uniprotptmpy"
-Repository = "https://github.com/pgarrett-scripps/uniprotptmpy"
-Issues = "https://github.com/pgarrett-scripps/uniprotptmpy/issues"
-Changelog = "https://github.com/pgarrett-scripps/uniprotptmpy/blob/main/HISTORY.md"
+Homepage = "https://github.com/tacular-omics/uniprotptmpy"
+Repository = "https://github.com/tacular-omics/uniprotptmpy"
+Issues = "https://github.com/tacular-omics/uniprotptmpy/issues"
+Changelog = "https://github.com/tacular-omics/uniprotptmpy/blob/main/HISTORY.md"
 
 [build-system]
 requires = ["hatchling"]
