@@ -3,12 +3,12 @@
 [![CI](https://github.com/pgarrett-scripps/uniprotptmpy/actions/workflows/ci.yml/badge.svg)](https://github.com/pgarrett-scripps/uniprotptmpy/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/uniprotptmpy)](https://pypi.org/project/uniprotptmpy/)
 [![Python](https://img.shields.io/pypi/pyversions/uniprotptmpy)](https://pypi.org/project/uniprotptmpy/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Python library for parsing and querying the [UniProt post-translational modification (PTM) controlled vocabulary](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt).
 
 - Zero dependencies
-- Bundled PTM data (748 entries) -- works offline out of the box
+- Bundled PTM data (748 entries) — works offline out of the box
 - Typed, immutable data models (`py.typed` / PEP 561)
 
 ## Installation
@@ -16,6 +16,14 @@ Python library for parsing and querying the [UniProt post-translational modifica
 ```bash
 pip install uniprotptmpy
 ```
+
+Or with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv add uniprotptmpy
+```
+
+Requires Python 3.12+. No third-party dependencies.
 
 ## Quick Start
 
@@ -82,9 +90,17 @@ db = load(path)     # load from the downloaded file
 just install   # install dependencies with uv
 just lint      # ruff check
 just format    # ruff format
+just ty        # ty type check
 just test      # pytest
 just check     # lint + type check + test
 ```
+
+## Related Projects
+
+| Package | Description |
+|---------|-------------|
+| [unimodpy](https://github.com/pgarrett-scripps/unimodpy) | Parse and query the UNIMOD mass spectrometry modifications database |
+| [psimodpy](https://github.com/pgarrett-scripps/psimodpy) | Parse and query the PSI-MOD protein modification ontology |
 
 ## License
 
