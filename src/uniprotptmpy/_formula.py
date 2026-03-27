@@ -1,3 +1,5 @@
+"""Chemical formula parsing and ProForma notation conversion."""
+
 from __future__ import annotations
 
 import re

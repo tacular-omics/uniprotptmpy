@@ -1,3 +1,5 @@
+"""In-memory PTM database with lookup and search."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
@@ -6,6 +8,7 @@ from uniprotptmpy.models import PtmEntry
 
 
 class PtmDatabase:
+    """Indexed collection of PTM entries with ID, name, and free-text search."""
     def __init__(self, entries: Iterable[PtmEntry]) -> None:
         self._entries: list[PtmEntry] = []
         self._by_id: dict[str, PtmEntry] = {}
@@ -17,15 +20,18 @@ class PtmDatabase:
             self._by_name_lower[entry.name.lower()] = entry
 
     def get_by_id(self, ac: str) -> PtmEntry | None:
+        """Look up by accession (e.g. 'PTM-0450' or bare '0450')."""
         normalized = ac.upper()
         if not normalized.startswith("PTM-"):
             normalized = f"PTM-{normalized}"
         return self._by_id.get(normalized)
 
     def get_by_name(self, name: str) -> PtmEntry | None:
+        """Case-insensitive exact match on the PTM name."""
         return self._by_name_lower.get(name.lower())
 
     def search(self, query: str) -> list[PtmEntry]:
+        """Free-text substring search across name, ID, target, and keywords."""
         q = query.lower()
         return [
             entry
