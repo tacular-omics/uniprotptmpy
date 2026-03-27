@@ -1,3 +1,5 @@
+"""Download the latest ptmlist.txt from UniProt FTP."""
+
 from __future__ import annotations
 
 import urllib.request

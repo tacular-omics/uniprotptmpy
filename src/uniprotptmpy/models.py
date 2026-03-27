@@ -1,3 +1,5 @@
+"""Data models for PTM entries and related types."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +9,8 @@ from uniprotptmpy._formula import parse_ptm_formula, to_proforma_formula
 
 
 class FeatureType(StrEnum):
+    """UniProt feature key for the PTM."""
+
     CROSSLNK = "CROSSLNK"
     MOD_RES = "MOD_RES"
     LIPID = "LIPID"
@@ -16,12 +20,16 @@ class FeatureType(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class CrossReference:
+    """Cross-reference to an external database (RESID, PSI-MOD, etc.)."""
+
     database: str
     accession: str
 
 
 @dataclass(frozen=True, slots=True)
 class TaxonomicRange:
+    """Taxonomic scope of a PTM."""
+
     taxon_name: str
     tax_id: int | None
     description: str
@@ -30,6 +38,7 @@ class TaxonomicRange:
 
 @dataclass(frozen=True, slots=True)
 class PtmEntry:
+    """A single post-translational modification entry from the UniProt controlled vocabulary."""
     id: str  # AC field e.g. "PTM-0450"
     name: str  # ID field (human-readable name)
     feature_type: FeatureType  # FT
@@ -46,12 +55,14 @@ class PtmEntry:
 
     @property
     def dict_composition(self) -> dict[str, int] | None:
+        """Correction formula parsed to element-count dict, or None if no formula."""
         if self.correction_formula is None:
             return None
         return parse_ptm_formula(self.correction_formula)
 
     @property
     def proforma_formula(self) -> str | None:
+        """Correction formula in ProForma Hill-notation, or None if no formula."""
         comp = self.dict_composition
         if comp is None:
             return None

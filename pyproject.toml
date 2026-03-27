@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Python library for parsing and querying the UniProt PTM controlled vocabulary list."
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = []
 authors = [
     { name = "Patrick Garrett", email = "pgarrett@scripps.edu" }
@@ -11,9 +12,23 @@ authors = [
 maintainers = [
     { name = "Patrick Garrett", email = "pgarrett@scripps.edu" }
 ]
+keywords = ["uniprot", "ptm", "post-translational-modification", "proteomics", "bioinformatics"]
 classifiers = [
-    # TODO
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Typing :: Typed",
 ]
+
+[project.urls]
+Homepage = "https://github.com/pgarrett-scripps/uniprotptmpy"
+Repository = "https://github.com/pgarrett-scripps/uniprotptmpy"
+Issues = "https://github.com/pgarrett-scripps/uniprotptmpy/issues"
+Changelog = "https://github.com/pgarrett-scripps/uniprotptmpy/blob/main/HISTORY.md"
 
 [build-system]
 requires = ["hatchling"]

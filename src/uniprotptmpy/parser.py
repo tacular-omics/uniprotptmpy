@@ -1,3 +1,5 @@
+"""Parser for UniProt ptmlist.txt flat-file format."""
+
 from __future__ import annotations
 
 import re
@@ -58,6 +60,7 @@ def _build_entry(fields: dict) -> PtmEntry:
 
 
 def parse_ptm_list(path: Path | str) -> PtmDatabase:
+    """Parse a ptmlist.txt file into a PtmDatabase."""
     path = Path(path)
     entries: list[PtmEntry] = []
     in_entry = False
