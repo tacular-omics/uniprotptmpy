@@ -39,6 +39,7 @@ class TaxonomicRange:
 @dataclass(frozen=True, slots=True)
 class PtmEntry:
     """A single post-translational modification entry from the UniProt controlled vocabulary."""
+
     id: str  # AC field e.g. "PTM-0450"
     name: str  # ID field (human-readable name)
     feature_type: FeatureType  # FT

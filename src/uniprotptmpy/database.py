@@ -9,6 +9,7 @@ from uniprotptmpy.models import PtmEntry
 
 class PtmDatabase:
     """Indexed collection of PTM entries with ID, name, and free-text search."""
+
     def __init__(self, entries: Iterable[PtmEntry]) -> None:
         self._entries: list[PtmEntry] = []
         self._by_id: dict[str, PtmEntry] = {}
