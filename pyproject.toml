@@ -1,6 +1,6 @@
 [project]
 name = "uniprotptmpy"
-version = "0.1.0"
+version = "0.1.2"
 description = "Python library for parsing and querying the UniProt PTM controlled vocabulary list."
 readme = "README.md"
 requires-python = ">=3.12"
