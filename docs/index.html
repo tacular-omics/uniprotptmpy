@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UniProt PTM Browser — uniprotptmpy</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f0f4f8;color:#1a202c;min-height:100vh;font-size:14px}
+a{color:#3b82f6;text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:ui-monospace,"SFMono-Regular",Menlo,monospace;font-size:.9em}
+header{background:#1e293b;color:#f8fafc;padding:1.25rem 1.5rem}
+.hi{max-width:1300px;margin:0 auto;display:flex;gap:1rem;justify-content:space-between;flex-wrap:wrap;align-items:flex-start}
+h1{font-size:1.6rem;font-weight:700;letter-spacing:-.03em}
+.sub{color:#94a3b8;font-size:.85rem;margin-top:.2rem}
+.hm{display:flex;align-items:center;gap:.4rem;margin-top:.6rem;flex-wrap:wrap}
+.ct{background:#3b82f6;color:#fff;font-size:.75rem;font-weight:700;padding:.15rem .55rem;border-radius:999px}
+.pl{background:#334155;color:#cbd5e1;font-size:.75rem;padding:.15rem .55rem;border-radius:999px}
+.pl:hover{background:#475569;text-decoration:none;color:#f8fafc}
+.rel{color:#94a3b8;font-size:.8rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;align-self:flex-end}
+.rel a{color:#93c5fd}
+main{max-width:1300px;margin:1rem auto;padding:0 1rem}
+.tb{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem}
+.tb input[type=search]{flex:1;min-width:180px;padding:.5rem .75rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:.875rem;background:#fff;outline:none;color:#1a202c}
+.tb input[type=search]:focus{border-color:#3b82f6;box-shadow:0 0 0 3px #dbeafe80}
+.tb select{padding:.45rem .65rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:.8rem;background:#fff;outline:none;cursor:pointer;color:#374151}
+.tb select:focus{border-color:#3b82f6}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.4rem}
+.rc{font-size:.8rem;color:#6b7280}
+.pc{display:flex;align-items:center;gap:.4rem}
+.pc select{padding:.3rem .5rem;border:1px solid #d1d5db;border-radius:.4rem;font-size:.8rem;background:#fff;cursor:pointer}
+.pc button{padding:.3rem .65rem;border:1px solid #d1d5db;background:#fff;border-radius:.4rem;cursor:pointer;font-size:.8rem;color:#374151;line-height:1.2}
+.pc button:hover:not(:disabled){background:#f9fafb;border-color:#9ca3af}
+.pc button:disabled{opacity:.35;cursor:default}
+.pi{font-size:.8rem;color:#6b7280;min-width:60px;text-align:center}
+.tw{background:#fff;border:1px solid #e5e7eb;border-radius:.75rem;overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+thead{background:#f9fafb}
+th{padding:.65rem .9rem;text-align:left;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap;user-select:none}
+th[data-col]{cursor:pointer}
+th[data-col]:hover{background:#f0f4f8}
+.si::after{content:" ↕";color:#d1d5db}
+.sa::after{content:" ↑";color:#3b82f6}
+.sd::after{content:" ↓";color:#3b82f6}
+td{padding:.55rem .9rem;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.dr:hover td{background:#fafafa;cursor:pointer}
+.dr.exp td{background:#eff6ff}
+.dr.exp td:first-child{border-left:3px solid #3b82f6;padding-left:.65rem}
+.dtr td{padding:0}
+.di{padding:.9rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e5e7eb}
+.ic{font-family:ui-monospace,monospace;color:#2563eb;font-weight:600;font-size:.82rem;white-space:nowrap}
+.nc{font-weight:500}
+.fc{font-family:ui-monospace,monospace;color:#7c3aed;font-size:.82rem}
+.mc{font-family:ui-monospace,monospace;font-size:.82rem;text-align:right;white-space:nowrap}
+.lc{color:#6b7280;font-size:.82rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:.2rem;max-width:160px}
+.tag{border-radius:.3rem;padding:.1rem .4rem;font-size:.72rem;white-space:nowrap;border:1px solid;line-height:1.4}
+.tb0{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.tg0{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+.tp0{background:#faf5ff;color:#6d28d9;border-color:#ddd6fe}
+.to0{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.tgr{background:#f9fafb;color:#6b7280;border-color:#e5e7eb}
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.65rem;margin-bottom:.5rem}
+.dl{font-size:.72rem;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem}
+.dv{font-size:.84rem;color:#1a202c;word-break:break-word}
+.mono{font-family:ui-monospace,monospace;font-size:.85em}
+.xrefs{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.25rem}
+.nr{text-align:center;padding:2.5rem;color:#9ca3af}
+@media(max-width:640px){header{padding:1rem}.hi{flex-direction:column}main{padding:0 .5rem}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hi">
+    <div>
+      <h1>uniprotptmpy</h1>
+      <p class="sub">UniProt post-translational modification controlled vocabulary</p>
+      <div class="hm">
+        <span class="ct" id="ec">loading…</span>
+        <a class="pl" href="https://pypi.org/project/uniprotptmpy/" target="_blank" rel="noopener">PyPI</a>
+        <a class="pl" href="https://github.com/tacular-omics/uniprotptmpy" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+    <nav class="rel">
+      <span>Related:</span>
+      <a href="https://tacular-omics.github.io/unimodpy/">unimodpy</a>
+      <a href="https://tacular-omics.github.io/psimodpy/">psimodpy</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <div class="tb">
+    <input type="search" id="q" placeholder="Search name, ID, target, keyword…" autocomplete="off">
+    <select id="fft"><option value="">All feature types</option></select>
+    <select id="ftg"><option value="">All targets</option></select>
+  </div>
+  <div class="bar">
+    <span class="rc" id="rc">Loading…</span>
+    <div class="pc">
+      <select id="pp"><option value="50">50/page</option><option value="100">100/page</option><option value="250">250/page</option><option value="0">All</option></select>
+      <button id="pv" disabled>‹</button>
+      <span class="pi" id="pi"></span>
+      <button id="nx" disabled>›</button>
+    </div>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th data-col="id"><span class="si">ID</span></th>
+        <th data-col="name"><span class="si">Name</span></th>
+        <th>Type</th>
+        <th data-col="target"><span class="si">Target</span></th>
+        <th data-col="monoisotopic_mass" style="text-align:right"><span class="si">Mono Mass (Da)</span></th>
+        <th>Formula</th>
+        <th>Location</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+<script>
+'use strict';
+let ALL=[],filtered=[],sortCol='id',sortDir=1,page=0,perPage=50;
+const FTC={MOD_RES:'tb0',CROSSLNK:'tp0',LIPID:'to0',CARBOHYD:'tg0',DISULFID:'tgr'};
+async function init(){
+  const r=await fetch('data.json');
+  ALL=await r.json();
+  document.getElementById('ec').textContent=ALL.length+' entries';
+  const fts=new Set,tgs=new Set;
+  for(const e of ALL){fts.add(e.feature_type);if(e.target)tgs.add(e.target);}
+  fill('fft',[...fts].sort());
+  fill('ftg',[...tgs].sort());
+  update();
+}
+function fill(id,vals){const s=document.getElementById(id);vals.forEach(v=>{const o=document.createElement('option');o.value=o.textContent=v;s.appendChild(o);});}
+function update(){page=0;applyFilters();applySort();render();}
+function applyFilters(){
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const fft=document.getElementById('fft').value,ftg=document.getElementById('ftg').value;
+  filtered=ALL.filter(e=>{
+    if(q){const h=`${e.id} ${e.name} ${e.target||''} ${(e.keywords||[]).join(' ')} ${e.cellular_location||''}`.toLowerCase();if(!h.includes(q))return false;}
+    if(fft&&e.feature_type!==fft)return false;
+    if(ftg&&e.target!==ftg)return false;
+    return true;
+  });
+}
+function applySort(){
+  filtered.sort((a,b)=>{
+    let av=a[sortCol],bv=b[sortCol];
+    if(av==null)av=sortCol==='monoisotopic_mass'?Infinity:'';
+    if(bv==null)bv=sortCol==='monoisotopic_mass'?Infinity:'';
+    return(typeof av==='number'?(av-bv):String(av).localeCompare(String(bv)))*sortDir;
+  });
+}
+function getPage(){if(!perPage)return filtered;return filtered.slice(page*perPage,(page+1)*perPage);}
+function render(){
+  const tbody=document.getElementById('tbody');
+  const rows=getPage();
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="7" class="nr">No entries match your search.</td></tr>';updateBar();return;}
+  tbody.innerHTML='';
+  for(const e of rows){
+    const tr=document.createElement('tr');tr.className='dr';
+    tr.innerHTML=`<td class="ic">${x(e.id)}</td>
+<td class="nc">${x(e.name)}</td>
+<td><span class="tag ${FTC[e.feature_type]||'tb0'}">${x(e.feature_type)}</span></td>
+<td>${x(e.target||'—')}</td>
+<td class="mc">${e.monoisotopic_mass!=null?e.monoisotopic_mass.toFixed(4):'<span style="color:#d1d5db">—</span>'}</td>
+<td class="fc">${e.proforma_formula?`<code>${x(e.proforma_formula)}</code>`:'<span style="color:#d1d5db">—</span>'}</td>
+<td class="lc" title="${x(e.cellular_location||'')}">${x(e.cellular_location||'<span style="color:#d1d5db">—</span>')}</td>`;
+    tr.addEventListener('click',()=>toggle(tr,e));
+    tbody.appendChild(tr);
+  }
+  updateBar();
+}
+function toggle(tr,e){
+  const nx=tr.nextElementSibling;
+  if(nx&&nx.classList.contains('dtr')){nx.remove();tr.classList.remove('exp');return;}
+  document.querySelectorAll('.dr.exp').forEach(r=>{r.classList.remove('exp');const n=r.nextElementSibling;if(n&&n.classList.contains('dtr'))n.remove();});
+  tr.classList.add('exp');
+  const d=document.createElement('tr');d.className='dtr';
+  d.innerHTML=`<td colspan="7"><div class="di">${detail(e)}</div></td>`;
+  tr.after(d);
+}
+function detail(e){
+  const kws=(e.keywords||[]).length?e.keywords.map(k=>`<span class="tag tb0">${x(k)}</span>`).join(' '):'—';
+  const xrefs=(e.cross_references||[]).length
+    ?e.cross_references.map(r=>`<span class="tag tgr">${x(r.database)}: ${x(r.accession)}</span>`).join(' '):'—';
+  const taxa=(e.taxonomic_ranges||[]).length
+    ?e.taxonomic_ranges.map(t=>`<div>${x(t.taxon_name)}${t.description?` — ${x(t.description)}`:''}</div>`).join(''):'—';
+  return `<div class="dg">
+<div><div class="dl">Target</div><div class="dv">${x(e.target||'—')}</div></div>
+${e.amino_acid_position?`<div><div class="dl">Amino Acid Position</div><div class="dv">${x(e.amino_acid_position)}</div></div>`:''}
+${e.polypeptide_position?`<div><div class="dl">Polypeptide Position</div><div class="dv">${x(e.polypeptide_position)}</div></div>`:''}
+${e.correction_formula?`<div><div class="dl">Correction Formula</div><div class="dv mono">${x(e.correction_formula)}</div></div>`:''}
+<div><div class="dl">Average Mass</div><div class="dv mono">${e.average_mass!=null?e.average_mass.toFixed(4)+' Da':'—'}</div></div>
+${e.cellular_location?`<div><div class="dl">Cellular Location</div><div class="dv">${x(e.cellular_location)}</div></div>`:''}
+</div>
+<div style="margin-top:.5rem"><div class="dl">Keywords</div><div class="xrefs" style="margin-top:.25rem">${kws}</div></div>
+<div style="margin-top:.5rem"><div class="dl">Cross-References</div><div class="xrefs">${xrefs}</div></div>
+${(e.taxonomic_ranges||[]).length?`<div style="margin-top:.5rem"><div class="dl">Taxonomic Ranges</div><div class="dv" style="margin-top:.25rem;font-size:.82rem">${taxa}</div></div>`:''}`;
+}
+function updateBar(){
+  const t=filtered.length,tp=perPage?Math.ceil(t/perPage):1;
+  const s=t?page*perPage+1:0,e2=perPage?Math.min((page+1)*perPage,t):t;
+  document.getElementById('rc').textContent=t===0?'No entries found':`Showing ${s}–${e2} of ${t} entries`;
+  document.getElementById('pi').textContent=perPage&&tp>1?`${page+1}/${tp}`:'';
+  document.getElementById('pv').disabled=page===0;
+  document.getElementById('nx').disabled=!perPage||page>=tp-1;
+  document.querySelectorAll('th[data-col]').forEach(th=>{
+    const sp=th.querySelector('span');if(sp)sp.className=th.dataset.col===sortCol?(sortDir===1?'sa':'sd'):'si';
+  });
+}
+function x(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+let dt;
+document.getElementById('q').addEventListener('input',()=>{clearTimeout(dt);dt=setTimeout(update,200);});
+['fft','ftg'].forEach(id=>document.getElementById(id).addEventListener('change',update));
+document.getElementById('pp').addEventListener('change',e=>{perPage=+e.target.value;page=0;render();});
+document.getElementById('pv').addEventListener('click',()=>{if(page>0){page--;render();}});
+document.getElementById('nx').addEventListener('click',()=>{if(perPage&&page<Math.ceil(filtered.length/perPage)-1){page++;render();}});
+document.querySelectorAll('th[data-col]').forEach(th=>{th.addEventListener('click',()=>{
+  const c=th.dataset.col;sortDir=sortCol===c?-sortDir:1;sortCol=c;applySort();render();
+});});
+init().catch(e=>{document.getElementById('tbody').innerHTML=`<tr><td colspan="7" class="nr">Error loading data: ${x(e.message)}</td></tr>`;document.getElementById('rc').textContent='Error';});
+</script>
+</body>
+</html>
