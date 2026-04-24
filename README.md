@@ -11,6 +11,10 @@ Python library for parsing and querying the [UniProt post-translational modifica
 - Bundled PTM data (748 entries) — works offline out of the box
 - Typed, immutable data models (`py.typed` / PEP 561)
 
+## Online Viewer
+#### [Click Me!](https://tacular-omics.github.io/uniprotptmpy/)
+
+
 ## Installation
 
 ```bash
