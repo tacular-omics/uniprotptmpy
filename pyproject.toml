@@ -37,7 +37,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/uniprotptmpy"]
-artifacts = ["src/uniprotptmpy/data/ptmlist.txt"]
+artifacts = ["src/uniprotptmpy/data/ptmlist.txt", "src/uniprotptmpy/data/ptmlist.tsv"]
 
 [tool.uv]
 package = true
