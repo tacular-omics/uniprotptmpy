@@ -135,6 +135,7 @@ td{padding:.55rem .9rem;border-bottom:1px solid #f3f4f6;vertical-align:middle}
 'use strict';
 let ALL=[],filtered=[],sortCol='id',sortDir=1,page=0,perPage=50;
 const FTC={MOD_RES:'tb0',CROSSLNK:'tp0',LIPID:'to0',CARBOHYD:'tg0',DISULFID:'tgr'};
+function ptmNum(e){return parseInt(e.id.slice(4),10);}
 async function init(){
   const r=await fetch('data.json');
   ALL=await r.json();
@@ -145,7 +146,7 @@ async function init(){
   fill('ftg',[...tgs].sort());
   update();
   const qid=new URLSearchParams(location.search).get('id');
-  if(qid){const e=ALL.find(e=>e.id===qid);if(e)showDetail(e);}
+  if(qid){const n=Number(qid);const e=ALL.find(e=>ptmNum(e)===n);if(e)showDetail(e);}
 }
 function fill(id,vals){const s=document.getElementById(id);vals.forEach(v=>{const o=document.createElement('option');o.value=o.textContent=v;s.appendChild(o);});}
 function update(){page=0;applyFilters();applySort();render();}
@@ -153,7 +154,7 @@ function applyFilters(){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const fft=document.getElementById('fft').value,ftg=document.getElementById('ftg').value;
   filtered=ALL.filter(e=>{
-    if(q){const h=`${e.id} ${e.name} ${e.target||''} ${(e.keywords||[]).join(' ')} ${e.cellular_location||''}`.toLowerCase();if(!h.includes(q))return false;}
+    if(q){const h=`${e.id} ${ptmNum(e)} ${e.name} ${e.target||''} ${(e.keywords||[]).join(' ')} ${e.cellular_location||''}`.toLowerCase();if(!h.includes(q))return false;}
     if(fft&&e.feature_type!==fft)return false;
     if(ftg&&e.target!==ftg)return false;
     return true;
@@ -164,6 +165,7 @@ function applySort(){
     let av=a[sortCol],bv=b[sortCol];
     if(av==null)av=sortCol==='monoisotopic_mass'?Infinity:'';
     if(bv==null)bv=sortCol==='monoisotopic_mass'?Infinity:'';
+    if(sortCol==='id'){av=ptmNum(a);bv=ptmNum(b);return(av-bv)*sortDir;}
     return(typeof av==='number'?(av-bv):String(av).localeCompare(String(bv)))*sortDir;
   });
 }
@@ -188,7 +190,7 @@ function render(){
   updateBar();
 }
 function openDetail(e){
-  history.pushState({id:e.id},'','?id='+encodeURIComponent(e.id));
+  history.pushState({id:ptmNum(e)},'','?id='+ptmNum(e));
   showDetail(e);
 }
 function showDetail(e){
@@ -212,10 +214,13 @@ function detail(e){
   const taxa=(e.taxonomic_ranges||[]).length
     ?e.taxonomic_ranges.map(t=>`<div>${x(t.taxon_name)}${t.description?` — ${x(t.description)}`:''}</div>`).join(''):'—';
   return `<div class="dg">
+<div><div class="dl">Feature Type</div><div class="dv"><span class="tag ${FTC[e.feature_type]||'tb0'}">${x(e.feature_type)}</span></div></div>
 <div><div class="dl">Target</div><div class="dv">${x(e.target||'—')}</div></div>
 ${e.amino_acid_position?`<div><div class="dl">Amino Acid Position</div><div class="dv">${x(e.amino_acid_position)}</div></div>`:''}
 ${e.polypeptide_position?`<div><div class="dl">Polypeptide Position</div><div class="dv">${x(e.polypeptide_position)}</div></div>`:''}
 ${e.correction_formula?`<div><div class="dl">Correction Formula</div><div class="dv mono">${x(e.correction_formula)}</div></div>`:''}
+${e.proforma_formula?`<div><div class="dl">Formula</div><div class="dv mono"><code>${x(e.proforma_formula)}</code></div></div>`:''}
+<div><div class="dl">Monoisotopic Mass</div><div class="dv mono">${e.monoisotopic_mass!=null?e.monoisotopic_mass.toFixed(4)+' Da':'—'}</div></div>
 <div><div class="dl">Average Mass</div><div class="dv mono">${e.average_mass!=null?e.average_mass.toFixed(4)+' Da':'—'}</div></div>
 ${e.cellular_location?`<div><div class="dl">Cellular Location</div><div class="dv">${x(e.cellular_location)}</div></div>`:''}
 </div>
@@ -238,7 +243,7 @@ function x(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace
 document.getElementById('dvb').addEventListener('click',closeDetail);
 window.addEventListener('popstate',()=>{
   const qid=new URLSearchParams(location.search).get('id');
-  if(qid){const e=ALL.find(e=>e.id===qid);if(e){showDetail(e);return;}}
+  if(qid){const n=Number(qid);const e=ALL.find(e=>ptmNum(e)===n);if(e){showDetail(e);return;}}
   document.getElementById('dvp').style.display='none';
   document.getElementById('lvw').style.display='';
   document.title='UniProt PTM Browser — uniprotptmpy';
