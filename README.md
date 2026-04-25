@@ -10,6 +10,7 @@ Python library for parsing and querying the [UniProt post-translational modifica
 - Zero dependencies
 - Bundled PTM data (748 entries) — works offline out of the box
 - Typed, immutable data models (`py.typed` / PEP 561)
+- TSV/CSV export and round-trip `ptmlist.txt` writer
 
 ## Online Viewer
 #### [Click Me!](https://tacular-omics.github.io/uniprotptmpy/)
@@ -66,6 +67,35 @@ print(entry.dict_composition)     # {'O': 1}
 print(entry.proforma_formula)     # O
 ```
 
+### Exporting to TSV/CSV
+
+```python
+# Write all entries to a tab-separated file
+db.write_tsv("ptms.tsv")
+
+# Or CSV
+db.write_tsv("ptms.csv", delimiter=",")
+
+# Standalone function also available
+from uniprotptmpy import write_tsv
+write_tsv(db, "ptms.tsv")
+```
+
+### Writing back to ptmlist.txt format
+
+```python
+# Round-trip: write entries back to the original UniProt flat-file format
+db.write_ptmlist("out/ptmlist.txt")
+
+# Re-parse the written file — identical entry count and field values
+from uniprotptmpy import parse_ptm_list
+db2 = parse_ptm_list("out/ptmlist.txt")
+
+# Standalone function
+from uniprotptmpy import write_ptmlist
+write_ptmlist(db, "out/ptmlist.txt")
+```
+
 ### Downloading the Latest Data
 
 ```python
@@ -82,7 +112,9 @@ db = load(path)     # load from the downloaded file
 | `load(source=None)` | Load the PTM database. Uses bundled data by default. |
 | `download(dest=None)` | Download the latest ptmlist.txt from UniProt FTP. |
 | `parse_ptm_list(path)` | Parse a ptmlist.txt file into a `PtmDatabase`. |
-| `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, iteration, and `len()`. |
+| `write_tsv(entries, path, *, delimiter)` | Write entries to a TSV (or CSV) file. |
+| `write_ptmlist(entries, path)` | Write entries back to UniProt ptmlist.txt flat-file format. |
+| `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
 | `PtmEntry` | Frozen dataclass with all PTM fields, plus `dict_composition` and `proforma_formula` properties. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
