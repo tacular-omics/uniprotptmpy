@@ -3,6 +3,7 @@
 from importlib.metadata import version
 
 from uniprotptmpy._download import download
+from uniprotptmpy._ptmlist_writer import write_ptmlist
 from uniprotptmpy._tabular import write_tsv
 from uniprotptmpy.database import PtmDatabase
 from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, TaxonomicRange
@@ -20,5 +21,6 @@ __all__ = [
     "download",
     "load",
     "parse_ptm_list",
+    "write_ptmlist",
     "write_tsv",
 ]
