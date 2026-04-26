@@ -17,32 +17,37 @@ _PACKAGE = "uniprotptmpy"
 # MCP server (mounted at /, exposes its own /mcp route)
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP(
-    _PACKAGE,
-    instructions="Query the UniProt PTM controlled vocabulary.",
-    stateless_http=True,
-    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
-)
+
+def _build_mcp() -> FastMCP:
+    mcp = FastMCP(
+        _PACKAGE,
+        instructions="Query the UniProt PTM controlled vocabulary.",
+        stateless_http=True,
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+    )
+
+    @mcp.tool()
+    def get_by_id(id: str) -> dict | None:
+        """Look up a PTM by accession. Accepts ``"PTM-0450"`` or bare ``"0450"``."""
+        entry = _db.get_by_id(id)
+        return serialize_entry(entry) if entry else None
+
+    @mcp.tool()
+    def get_by_name(name: str) -> dict | None:
+        """Look up a PTM by exact name (case-insensitive)."""
+        entry = _db.get_by_name(name)
+        return serialize_entry(entry) if entry else None
+
+    @mcp.tool()
+    def search(query: str, limit: int = 25) -> list[dict]:
+        """Free-text search over name, ID, target, and keywords. Returns up to ``limit`` results."""
+        return [serialize_entry(e) for e in _db.search(query)[:limit]]
+
+    return mcp
 
 
-@mcp.tool()
-def get_by_id(id: str) -> dict | None:
-    """Look up a PTM by accession. Accepts ``"PTM-0450"`` or bare ``"0450"``."""
-    entry = _db.get_by_id(id)
-    return serialize_entry(entry) if entry else None
-
-
-@mcp.tool()
-def get_by_name(name: str) -> dict | None:
-    """Look up a PTM by exact name (case-insensitive)."""
-    entry = _db.get_by_name(name)
-    return serialize_entry(entry) if entry else None
-
-
-@mcp.tool()
-def search(query: str, limit: int = 25) -> list[dict]:
-    """Free-text search over name, ID, target, and keywords. Returns up to ``limit`` results."""
-    return [serialize_entry(e) for e in _db.search(query)[:limit]]
+# Module-level instance for inspection / re-export.
+mcp = _build_mcp()
 
 
 # ---------------------------------------------------------------------------
@@ -50,15 +55,14 @@ def search(query: str, limit: int = 25) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-# Vercel doesn't fire ASGI lifespan events, so we start the session manager per request.
+# Vercel doesn't fire ASGI lifespan events, and StreamableHTTPSessionManager.run()
+# can only be called once per instance, so we build a fresh FastMCP per request.
 class _MCPWrapper:
-    def __init__(self, mcp: FastMCP) -> None:
-        self._inner = mcp.streamable_http_app()
-        self._mcp = mcp
-
     async def __call__(self, scope, receive, send) -> None:
-        async with self._mcp.session_manager.run():
-            await self._inner(scope, receive, send)
+        m = _build_mcp()
+        http_app = m.streamable_http_app()
+        async with m.session_manager.run():
+            await http_app(scope, receive, send)
 
 
 app = FastAPI(
@@ -124,4 +128,4 @@ def search_entries(
 
 
 # Mount MCP at the root; its inner app exposes /mcp.
-app.mount("/", _MCPWrapper(mcp))
+app.mount("/", _MCPWrapper())
