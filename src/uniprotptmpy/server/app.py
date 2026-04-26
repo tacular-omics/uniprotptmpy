@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, HTTPException, Query
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
@@ -52,17 +50,21 @@ def search(query: str, limit: int = 25) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-@asynccontextmanager
-async def _lifespan(_: FastAPI):
-    async with mcp.session_manager.run():
-        yield
+# Vercel doesn't fire ASGI lifespan events, so we start the session manager per request.
+class _MCPWrapper:
+    def __init__(self, mcp: FastMCP) -> None:
+        self._inner = mcp.streamable_http_app()
+        self._mcp = mcp
+
+    async def __call__(self, scope, receive, send) -> None:
+        async with self._mcp.session_manager.run():
+            await self._inner(scope, receive, send)
 
 
 app = FastAPI(
     title="uniprotptmpy API",
     description="REST + MCP interface to the UniProt PTM controlled vocabulary.",
     version=uniprotptmpy.__version__,
-    lifespan=_lifespan,
 )
 
 
@@ -122,4 +124,4 @@ def search_entries(
 
 
 # Mount MCP at the root; its inner app exposes /mcp.
-app.mount("/", mcp.streamable_http_app())
+app.mount("/", _MCPWrapper(mcp))
