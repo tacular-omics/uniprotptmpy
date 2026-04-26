@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 
+from uniprotptmpy._ptmlist_writer import write_ptmlist
 from uniprotptmpy._tabular import write_tsv
 from uniprotptmpy.models import PtmEntry
 
@@ -60,3 +61,7 @@ class PtmDatabase:
     def write_tsv(self, path: Path | str, *, delimiter: str = "\t") -> Path:
         """Serialize all entries to a tab-separated file. Pass ``delimiter=','`` for CSV."""
         return write_tsv(self._entries, path, delimiter=delimiter)
+
+    def write_ptmlist(self, path: Path | str) -> Path:
+        """Serialize all entries to ptmlist.txt format."""
+        return write_ptmlist(self._entries, path)
