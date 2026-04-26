@@ -51,6 +51,7 @@ def search(query: str, limit: int = 25) -> list[dict]:
 # REST API
 # ---------------------------------------------------------------------------
 
+
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
     async with mcp.session_manager.run():
