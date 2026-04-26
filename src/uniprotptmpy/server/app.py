@@ -2,15 +2,42 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse, Response
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 import uniprotptmpy
+from uniprotptmpy.server.dashboard import dashboard_entries
 from uniprotptmpy.server.schemas import serialize_entry
 
 _db = uniprotptmpy.load()
 _PACKAGE = "uniprotptmpy"
+
+
+# Render dashboard payload once at import time.
+_DATA_JSON = json.dumps(dashboard_entries(), separators=(",", ":")).encode()
+
+
+# Locate the static dashboard. On Vercel the function bundle includes ``docs/``
+# (see vercel.json includeFiles); locally it lives at the repo root.
+def _load_dashboard_html() -> str | None:
+    for candidate in (
+        Path.cwd() / "docs" / "index.html",
+        Path(__file__).resolve().parents[3] / "docs" / "index.html",
+    ):
+        try:
+            if candidate.is_file():
+                return candidate.read_text()
+        except OSError:
+            continue
+    return None
+
+
+_DASHBOARD_HTML = _load_dashboard_html()
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +97,22 @@ app = FastAPI(
     description="REST + MCP interface to the UniProt PTM controlled vocabulary.",
     version=uniprotptmpy.__version__,
 )
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def dashboard() -> str:
+    if _DASHBOARD_HTML is None:
+        raise HTTPException(status_code=404, detail="Dashboard not bundled with deployment")
+    return _DASHBOARD_HTML
+
+
+@app.get("/data.json", include_in_schema=False)
+def dashboard_data() -> Response:
+    return Response(
+        content=_DATA_JSON,
+        media_type="application/json",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @app.get("/api/health")
