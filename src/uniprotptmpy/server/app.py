@@ -12,7 +12,14 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 import uniprotptmpy
 from uniprotptmpy.server.dashboard import dashboard_entries
-from uniprotptmpy.server.schemas import serialize_entry
+from uniprotptmpy.server.models import (
+    EntryListResponse,
+    PtmEntry,
+    PtmSummary,
+    SearchResponse,
+    to_ptm_entry,
+    to_ptm_summary,
+)
 
 _db = uniprotptmpy.load()
 _PACKAGE = "uniprotptmpy"
@@ -54,21 +61,25 @@ def _build_mcp() -> FastMCP:
     )
 
     @mcp.tool()
-    def get_by_id(id: str) -> dict | None:
+    def get_by_id(id: str) -> PtmEntry | None:
         """Look up a PTM by accession. Accepts ``"PTM-0450"`` or bare ``"0450"``."""
         entry = _db.get_by_id(id)
-        return serialize_entry(entry) if entry else None
+        return to_ptm_entry(entry) if entry else None
 
     @mcp.tool()
-    def get_by_name(name: str) -> dict | None:
+    def get_by_name(name: str) -> PtmEntry | None:
         """Look up a PTM by exact name (case-insensitive)."""
         entry = _db.get_by_name(name)
-        return serialize_entry(entry) if entry else None
+        return to_ptm_entry(entry) if entry else None
 
     @mcp.tool()
-    def search(query: str, limit: int = 25) -> list[dict]:
-        """Free-text search over name, ID, target, and keywords. Returns up to ``limit`` results."""
-        return [serialize_entry(e) for e in _db.search(query)[:limit]]
+    def search(query: str, limit: int = 25) -> list[PtmSummary]:
+        """Free-text search over name, ID, target, and keywords.
+
+        Returns up to ``limit`` lightweight summaries.  Call ``get_by_id`` on
+        any returned ``id`` to fetch the full entry.
+        """
+        return [to_ptm_summary(e) for e in _db.search(query)[:limit]]
 
     return mcp
 
@@ -125,49 +136,49 @@ def health() -> dict:
     }
 
 
-@app.get("/api/entries")
+@app.get("/api/entries", response_model=EntryListResponse)
 def list_entries(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-) -> dict:
+) -> EntryListResponse:
     entries = list(_db)
     page = entries[offset : offset + limit]
-    return {
-        "total": len(entries),
-        "limit": limit,
-        "offset": offset,
-        "items": [serialize_entry(e) for e in page],
-    }
+    return EntryListResponse(
+        total=len(entries),
+        limit=limit,
+        offset=offset,
+        items=[to_ptm_entry(e) for e in page],
+    )
 
 
-@app.get("/api/entries/{id}")
-def get_entry(id: str) -> dict:
+@app.get("/api/entries/{id}", response_model=PtmEntry)
+def get_entry(id: str) -> PtmEntry:
     entry = _db.get_by_id(id)
     if entry is None:
         raise HTTPException(status_code=404, detail=f"No entry for id={id!r}")
-    return serialize_entry(entry)
+    return to_ptm_entry(entry)
 
 
-@app.get("/api/entries/by-name/{name}")
-def get_entry_by_name(name: str) -> dict:
+@app.get("/api/entries/by-name/{name}", response_model=PtmEntry)
+def get_entry_by_name(name: str) -> PtmEntry:
     entry = _db.get_by_name(name)
     if entry is None:
         raise HTTPException(status_code=404, detail=f"No entry for name={name!r}")
-    return serialize_entry(entry)
+    return to_ptm_entry(entry)
 
 
-@app.get("/api/search")
+@app.get("/api/search", response_model=SearchResponse)
 def search_entries(
     q: str = Query(..., min_length=1),
     limit: int = Query(50, ge=1, le=500),
-) -> dict:
+) -> SearchResponse:
     results = _db.search(q)
-    return {
-        "query": q,
-        "total": len(results),
-        "limit": limit,
-        "items": [serialize_entry(e) for e in results[:limit]],
-    }
+    return SearchResponse(
+        query=q,
+        total=len(results),
+        limit=limit,
+        items=[to_ptm_summary(e) for e in results[:limit]],
+    )
 
 
 # Mount MCP at the root; its inner app exposes /mcp.
