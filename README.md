@@ -7,13 +7,17 @@
 
 Python library for parsing and querying the [UniProt post-translational modification (PTM) controlled vocabulary](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt).
 
-- Zero dependencies
+- Zero core dependencies
 - Bundled PTM data (748 entries) — works offline out of the box
 - Typed, immutable data models (`py.typed` / PEP 561)
 - TSV/CSV export and round-trip `ptmlist.txt` writer
+- Optional FastAPI / [Model Context Protocol](https://modelcontextprotocol.io) server (`pip install uniprotptmpy[server]`)
 
 ## Online Viewer
 #### [Click Me!](https://tacular-omics.github.io/uniprotptmpy/)
+
+The same database is also reachable as a hosted REST + MCP service — see
+[HTTP API and MCP Server](#http-api-and-mcp-server) below.
 
 
 ## Installation
@@ -103,6 +107,54 @@ from uniprotptmpy import download, load
 
 path = download()   # downloads to ~/.cache/uniprotptmpy/ptmlist.txt
 db = load(path)     # load from the downloaded file
+```
+
+## HTTP API and MCP Server
+
+The optional `[server]` extra ships a FastAPI app that exposes the same
+database over a JSON REST API *and* over the
+[Model Context Protocol](https://modelcontextprotocol.io) so language-model
+tools can query the UniProt PTM vocabulary directly.
+
+```bash
+pip install uniprotptmpy[server]
+uvicorn uniprotptmpy.server.app:app --reload
+```
+
+### REST endpoints
+
+| Method & path | Returns |
+|---------------|---------|
+| `GET /api/health` | Service metadata and entry count. |
+| `GET /api/entries?limit=&offset=` | Paginated full entries. |
+| `GET /api/entries/{id}` | One full entry by accession (`PTM-0450` or `0450`). |
+| `GET /api/entries/by-name/{name}` | One full entry by exact name. |
+| `GET /api/search?q=&limit=` | Search hits as lightweight summaries. |
+
+Search responses contain just `{id, name, feature_type, target,
+monoisotopic_mass}` to keep token cost low; call `/api/entries/{id}` on any
+hit for the full record (including taxonomic ranges and cross-references).
+
+### MCP server
+
+The same FastAPI app mounts an MCP endpoint at `POST /mcp` with three tools:
+
+| Tool | Purpose |
+|------|---------|
+| `get_by_id(id)` | Look up a single PTM by accession. |
+| `get_by_name(name)` | Exact name lookup. |
+| `search(query, limit=25)` | Free-text search returning summaries. |
+
+Tool responses use MCP's structured-output mechanism: the server emits an
+`outputSchema` per tool in `tools/list` and returns both `structuredContent`
+(typed Pydantic instance) and `content` (text fallback) on `tools/call`, so
+LLM clients can parse the response without re-reading the JSON string.
+
+Configure your MCP-aware client to point at `http://localhost:8000/mcp`
+(or wherever you deploy the app). Example with the Anthropic CLI:
+
+```bash
+claude mcp add uniprot-ptm http://localhost:8000/mcp --transport http
 ```
 
 ## API Overview
