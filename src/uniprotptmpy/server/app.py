@@ -47,6 +47,13 @@ def _load_dashboard_html() -> str | None:
 _DASHBOARD_HTML = _load_dashboard_html()
 
 
+def _split_residues(residues: str | None) -> list[str] | None:
+    if residues is None:
+        return None
+    parts = [r.strip() for r in residues.split(",") if r.strip()]
+    return parts or None
+
+
 # ---------------------------------------------------------------------------
 # MCP server (mounted at /, exposes its own /mcp route)
 # ---------------------------------------------------------------------------
@@ -80,6 +87,37 @@ def _build_mcp() -> FastMCP:
         any returned ``id`` to fetch the full entry.
         """
         return [to_ptm_summary(e) for e in _db.search(query)[:limit]]
+
+    @mcp.tool()
+    def find(
+        text: str | None = None,
+        mass_min: float | None = None,
+        mass_max: float | None = None,
+        mass_type: str = "mono",
+        residues: list[str] | None = None,
+        feature_type: str | None = None,
+        keyword: str | None = None,
+        taxon_id: int | None = None,
+        limit: int = 25,
+    ) -> list[PtmSummary]:
+        """Fine-grained AND-combined search across name/ID/target/keywords,
+        mass range, residue (target) codes, feature type, keyword, and taxon id.
+
+        Returns up to ``limit`` lightweight summaries.
+        """
+        mt: str = mass_type if mass_type in ("mono", "avg") else "mono"
+        results = _db.find(
+            text=text,
+            mass_min=mass_min,
+            mass_max=mass_max,
+            mass_type=mt,  # type: ignore[arg-type]
+            residues=residues,
+            feature_type=feature_type,
+            keyword=keyword,
+            taxon_id=taxon_id,
+            limit=limit,
+        )
+        return [to_ptm_summary(e) for e in results]
 
     return mcp
 
@@ -179,6 +217,32 @@ def search_entries(
         limit=limit,
         items=[to_ptm_summary(e) for e in results[:limit]],
     )
+
+
+@app.get("/api/find", response_model=list[PtmSummary])
+def find_entries(
+    text: str | None = Query(None),
+    mass_min: float | None = Query(None),
+    mass_max: float | None = Query(None),
+    mass_type: str = Query("mono", pattern="^(mono|avg)$"),
+    residues: str | None = Query(None, description="Comma-separated residue codes"),
+    feature_type: str | None = Query(None),
+    keyword: str | None = Query(None),
+    taxon_id: int | None = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+) -> list[PtmSummary]:
+    results = _db.find(
+        text=text,
+        mass_min=mass_min,
+        mass_max=mass_max,
+        mass_type=mass_type,  # type: ignore[arg-type]
+        residues=_split_residues(residues),
+        feature_type=feature_type,
+        keyword=keyword,
+        taxon_id=taxon_id,
+        limit=limit,
+    )
+    return [to_ptm_summary(e) for e in results]
 
 
 # Mount MCP at the root; its inner app exposes /mcp.
