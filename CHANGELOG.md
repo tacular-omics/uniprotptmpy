@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.2] (2026-09-23)
+
 ### Fixed
 
 - The MCP `search` tool rejects a `limit` outside 1-500, like the REST `/api/search` endpoint; `-1` used to return nearly every entry.
