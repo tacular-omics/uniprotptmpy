@@ -52,6 +52,31 @@ def test_getitem_raises_keyerror() -> None:
         _ = db["PTM-9999"]
 
 
+def test_contains_accepts_every_getitem_key_form() -> None:
+    """``in`` agrees with ``__getitem__``: full id, bare id, any-case id and name."""
+    entry = _make_entry(id="PTM-0450", name="Phosphoserine")
+    db = PtmDatabase([entry])
+    for key in ("PTM-0450", "ptm-0450", "0450", "Phosphoserine", "PHOSPHOSERINE"):
+        assert key in db
+        assert db[key] is entry
+    assert "PTM-9999" not in db
+    assert "nonexistent" not in db
+
+
+def test_contains_non_string_returns_false() -> None:
+    db = PtmDatabase([_make_entry()])
+    assert 450 not in db
+    assert None not in db
+
+
+def test_contains_entry_object() -> None:
+    """Membership by entry object still works, as it did via iteration."""
+    entry = _make_entry()
+    db = PtmDatabase([entry])
+    assert entry in db
+    assert _make_entry(id="PTM-0002", name="Other") not in db
+
+
 def test_search_matches_keyword() -> None:
     entry = _make_entry(keywords=("Acetylation", "Methylation"))
     db = PtmDatabase([entry])

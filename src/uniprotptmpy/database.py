@@ -52,6 +52,14 @@ class PtmDatabase:
             raise KeyError(key)
         return entry
 
+    def __contains__(self, key: object) -> bool:
+        """True if ``db[key]`` would succeed; also accepts a ``PtmEntry`` from this database."""
+        if isinstance(key, PtmEntry):
+            return self._by_id.get(key.id) == key
+        if not isinstance(key, str):
+            return False
+        return (self.get_by_id(key) or self.get_by_name(key)) is not None
+
     def __iter__(self) -> Iterator[PtmEntry]:
         return iter(self._entries)
 

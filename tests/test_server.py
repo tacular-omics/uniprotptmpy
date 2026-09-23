@@ -139,7 +139,7 @@ def test_search_rejects_out_of_range_limit(mcp_client: TestClient, limit: int) -
     resp = _mcp(
         mcp_client,
         "tools/call",
-        {"name": "search", "arguments": {"query": "", "limit": limit}},
+        {"name": "search", "arguments": {"query": "phospho", "limit": limit}},
         req_id=2,
     )
     assert resp["result"]["isError"] is True
@@ -151,10 +151,23 @@ def test_search_accepts_max_limit(mcp_client: TestClient) -> None:
     resp = _mcp(
         mcp_client,
         "tools/call",
-        {"name": "search", "arguments": {"query": "", "limit": 500}},
+        {"name": "search", "arguments": {"query": "PTM-", "limit": 500}},
         req_id=2,
     )
     assert len(resp["result"]["structuredContent"]["result"]) == 500
+
+
+def test_search_rejects_empty_query(mcp_client: TestClient) -> None:
+    """The MCP ``search`` tool rejects an empty query, like REST's ``q`` min length 1."""
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(
+        mcp_client,
+        "tools/call",
+        {"name": "search", "arguments": {"query": ""}},
+        req_id=2,
+    )
+    assert resp["result"]["isError"] is True
+    assert "structuredContent" not in resp["result"] or not resp["result"]["structuredContent"]
 
 
 def test_server_import_parses_data_file_once(monkeypatch: pytest.MonkeyPatch) -> None:

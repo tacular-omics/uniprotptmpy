@@ -73,11 +73,13 @@ def _build_mcp() -> MCPServer:
         return to_ptm_entry(entry) if entry else None
 
     @mcp.tool()
-    def search(query: str, limit: Annotated[int, Field(ge=1, le=500)] = 25) -> list[PtmSummary]:
+    def search(
+        query: Annotated[str, Field(min_length=1)], limit: Annotated[int, Field(ge=1, le=500)] = 25
+    ) -> list[PtmSummary]:
         """Free-text search over name, ID, target, and keywords.
 
-        Returns up to ``limit`` (1-500) lightweight summaries.  Call ``get_by_id`` on
-        any returned ``id`` to fetch the full entry.
+        ``query`` must be non-empty. Returns up to ``limit`` (1-500) lightweight
+        summaries.  Call ``get_by_id`` on any returned ``id`` to fetch the full entry.
         """
         return [to_ptm_summary(e) for e in _db.search(query)[:limit]]
 
