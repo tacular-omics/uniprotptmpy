@@ -18,18 +18,17 @@ Sister vocabulary packages with the same shape: `unimodpy`, `psimodpy`.
 
 ```bash
 just install        # uv sync
-just test           # uv run pytest tests            (101 tests, ~2 s, no network)
-just lint           # uv run ruff check src
-just format         # ruff isort fix + ruff format on src
+just test           # uv run pytest tests            (106 tests, ~2 s, no network)
+just lint           # uv run ruff check src tests
+just format         # ruff isort fix + ruff format on src and tests
 just ty             # uv run ty check src
 just check          # lint + ty + test
 just build          # uv build, then list the .txt files in the wheel
 just check-version  # scripts/release_version.py check
 ```
 
-CI (`.github/workflows/ci.yml`) is stricter than `just check`: it also runs
-`uv run ruff check src tests` and `uv run ruff format --check src tests`. Run those
-before pushing.
+CI (`.github/workflows/ci.yml`) also runs `uv run ruff format --check src tests`,
+which `just check` does not. Run it before pushing.
 
 Server, locally (needs the extra: `uv sync --extra server`, or `pip install
 uniprotptmpy[server]`):
@@ -56,15 +55,13 @@ src/uniprotptmpy/
   data/ptmlist.txt    # bundled UniProt release (source of truth)
   data/ptmlist.tsv    # bundled TSV export; identical to load().write_tsv(...) today
   server/             # optional `server` extra (fastapi, uvicorn, mcp>=2.1.1,<3)
-    app.py            # FastAPI `app` + MCPServer `mcp`; loads the DB once at import
+    app.py            # FastAPI `app` + MCPServer `mcp`; loads the DB once at import (shared with the dashboard payload)
     models.py         # pydantic wire models (PtmEntry, PtmSummary, ...) + to_ptm_entry/to_ptm_summary
     dashboard.py      # dashboard_entries(): JSON payload for the browser (/data.json, docs/data.json)
 api/index.py          # Vercel entry point: `from uniprotptmpy.server.app import app`
 vercel.json           # installCommand `uv pip install '.[server]'`; one function (api/index.py,
                       # maxDuration 10 s, includeFiles docs/**). No rewrites: the Vercel Python
                       # runtime routes every path to the FastAPI app itself
-requirements.txt      # `.[server]`; legacy. @vercel/python ignores it when pyproject.toml exists,
-                      # which is why vercel.json sets installCommand
 docs/index.html       # static PTM browser; fetches data.json (GitHub Pages and the Vercel `/`)
 scripts/export_json.py     # writes docs/data.json (run by .github/workflows/pages.yml; not committed)
 scripts/release_version.py # shared tacular-omics version sync/check script; do not edit here
@@ -137,8 +134,8 @@ From `uniprotptmpy/__init__.py` (`__all__`):
   pydantic wire model in `server/models.py`. Field changes need both, plus
   `to_ptm_entry`, `dashboard.py`, `_tabular.py` and `_ptmlist_writer.py`.
 - `search` is a plain substring match over name, id, target and keywords; an empty
-  query matches everything. REST enforces `q` min length 1 and `limit` <= 500; the MCP
-  `search` tool does neither.
+  query matches everything. REST enforces `q` min length 1 and `limit` 1-500; the MCP
+  `search` tool enforces the same `limit` bound but accepts an empty query.
 - `data/ptmlist.tsv` is bundled but nothing reads it and no script regenerates it.
   After updating `ptmlist.txt`, regenerate it with `load().write_tsv(...)`.
 - 177 entries have no correction formula (`dict_composition`/`proforma_formula` are

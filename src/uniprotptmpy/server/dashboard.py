@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from uniprotptmpy import load
+from uniprotptmpy import PtmDatabase, load
 
 
-def dashboard_entries() -> list[dict]:
-    db = load()
+def dashboard_entries(db: PtmDatabase | None = None) -> list[dict]:
+    """Return the dashboard payload for ``db`` (the bundled database if omitted)."""
+    if db is None:
+        db = load()
     entries: list[dict] = []
     for entry in db:
         entries.append(

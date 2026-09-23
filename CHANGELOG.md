@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The MCP `search` tool rejects a `limit` outside 1-500, like the REST `/api/search` endpoint; `-1` used to return nearly every entry.
+- The server parses the bundled `ptmlist.txt` once at import instead of twice (the dashboard payload reuses the loaded database); `dashboard_entries()` takes an optional `db`.
+- `just lint` and `just format` cover `tests` as well as `src`, matching CI.
+- Removed the unused `requirements.txt`; Vercel installs the `server` extra via `installCommand` in `vercel.json`.
+
 ## [0.2.1] (2026-09-23)
 
 ### Added

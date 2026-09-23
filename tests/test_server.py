@@ -130,3 +130,56 @@ def test_rest_search_returns_summaries() -> None:
         assert {"query", "total", "limit", "items"} <= set(body)
         for item in body["items"]:
             PtmSummary.model_validate(item)
+
+
+@pytest.mark.parametrize("limit", [-1, 0, 501])
+def test_search_rejects_out_of_range_limit(mcp_client: TestClient, limit: int) -> None:
+    """The MCP ``search`` tool enforces the same 1-500 ``limit`` bound as REST."""
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(
+        mcp_client,
+        "tools/call",
+        {"name": "search", "arguments": {"query": "", "limit": limit}},
+        req_id=2,
+    )
+    assert resp["result"]["isError"] is True
+    assert "structuredContent" not in resp["result"] or not resp["result"]["structuredContent"]
+
+
+def test_search_accepts_max_limit(mcp_client: TestClient) -> None:
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(
+        mcp_client,
+        "tools/call",
+        {"name": "search", "arguments": {"query": "", "limit": 500}},
+        req_id=2,
+    )
+    assert len(resp["result"]["structuredContent"]["result"]) == 500
+
+
+def test_server_import_parses_data_file_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Importing the server loads the bundled ptmlist.txt once, not once per consumer."""
+    import importlib
+    import sys
+
+    import uniprotptmpy
+
+    app_module = sys.modules["uniprotptmpy.server.app"]
+    dashboard_module = sys.modules["uniprotptmpy.server.dashboard"]
+
+    calls = 0
+    real_load = uniprotptmpy.load
+
+    def counting_load(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(uniprotptmpy, "load", counting_load)
+    monkeypatch.setattr(dashboard_module, "load", counting_load, raising=False)
+    try:
+        importlib.reload(app_module)
+        assert calls == 1
+    finally:
+        monkeypatch.undo()
+        importlib.reload(app_module)
