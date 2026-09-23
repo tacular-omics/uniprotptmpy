@@ -2,8 +2,7 @@ import dataclasses
 
 import pytest
 
-from uniprotptmpy import CrossReference, FeatureType, PtmDatabase, PtmEntry, load, parse_ptm_list
-
+from uniprotptmpy import FeatureType, PtmDatabase, parse_ptm_list
 
 # --- Entry count ---
 

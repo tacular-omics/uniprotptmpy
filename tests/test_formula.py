@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from uniprotptmpy._formula import parse_ptm_formula, to_proforma_formula
 
-
 # --- parse_ptm_formula ---
 
 

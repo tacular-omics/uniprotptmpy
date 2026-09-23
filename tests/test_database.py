@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from uniprotptmpy.database import PtmDatabase
-from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, TaxonomicRange
+from uniprotptmpy.models import FeatureType, PtmEntry
 
 
 def _make_entry(
