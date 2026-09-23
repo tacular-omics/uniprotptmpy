@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `PtmDatabase` has `__contains__`: `key in db` accepts the same keys as `db[key]` (`PTM-0450`, bare `0450`, any case, or a name) and returns `False` for anything else instead of scanning entries. `entry in db` still works for entries.
+- The MCP `search` tool rejects an empty `query`, like the REST `/api/search` endpoint; it used to return the first `limit` entries.
+
 ## [0.2.2] (2026-09-23)
 
 ### Fixed

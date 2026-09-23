@@ -110,7 +110,7 @@ From `uniprotptmpy/__init__.py` (`__all__`):
 - Loading: `load(source=None)`, `parse_ptm_list(path)`, `download(dest=None)`
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`
-  (id, then name, else `KeyError`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
+  (id, then name, else `KeyError`), `__contains__` (same keys, or a `PtmEntry`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
 - Models: `PtmEntry` (plus computed `dict_composition`, `proforma_formula`),
   `CrossReference`, `TaxonomicRange`, `FeatureType`
 - `__version__`
@@ -135,7 +135,7 @@ From `uniprotptmpy/__init__.py` (`__all__`):
   `to_ptm_entry`, `dashboard.py`, `_tabular.py` and `_ptmlist_writer.py`.
 - `search` is a plain substring match over name, id, target and keywords; an empty
   query matches everything. REST enforces `q` min length 1 and `limit` 1-500; the MCP
-  `search` tool enforces the same `limit` bound but accepts an empty query.
+  `search` tool enforces the same `query` and `limit` bounds.
 - `data/ptmlist.tsv` is bundled but nothing reads it and no script regenerates it.
   After updating `ptmlist.txt`, regenerate it with `load().write_tsv(...)`.
 - 177 entries have no correction formula (`dict_composition`/`proforma_formula` are
