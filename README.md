@@ -6,22 +6,25 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22926364.svg)](https://doi.org/10.5281/zenodo.22926364)
 
-Python library for parsing and querying the [UniProt post-translational modification (PTM) controlled vocabulary](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt).
+uniprotptmpy wraps the [UniProt post-translational modification (PTM)
+controlled vocabulary](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt)
+in a typed Python API, so proteomics tooling can look up PTMs by accession,
+name, or free text without writing a parser for UniProt's `ptmlist.txt` flat
+file. It ships with the full vocabulary bundled in, so it works fully
+offline.
 
-- Zero core dependencies
-- Bundled PTM data (748 entries) — works offline out of the box
-- Typed, immutable data models (`py.typed` / PEP 561)
-- TSV/CSV export and round-trip `ptmlist.txt` writer
-- Optional FastAPI / [Model Context Protocol](https://modelcontextprotocol.io) server (`pip install uniprotptmpy[server]`)
+## Highlights
 
-## Online Viewer
-#### [Click Me!](https://tacular-omics.github.io/uniprotptmpy/)
+- **Bundled, offline data** — 748 PTM entries shipped with the package; no network calls needed
+- **Zero core dependencies** — pure Python, `pip install` and go
+- **Typed, immutable models** with `py.typed` (PEP 561) for IDE autocomplete and static checking
+- **Rich lookups** — by accession (`PTM-0450`), exact name, free-text search across name/target/keywords, subscript access, and iteration
+- **Formula helpers** computed for you (elemental composition dicts, ProForma-style formula strings)
+- **Round-trip export** to TSV/CSV and back to the original `ptmlist.txt` format
+- **[Online browser](https://tacular-omics.github.io/uniprotptmpy/)** — search, sort, and inspect every term, no install required
+- **Optional local FastAPI + [MCP](https://modelcontextprotocol.io) server** (`pip install uniprotptmpy[server]`) to expose the database over HTTP or to LLM tools
 
-The same database is also reachable as a hosted REST + MCP service — see
-[HTTP API and MCP Server](#http-api-and-mcp-server) below.
-
-
-## Installation
+## Install
 
 ```bash
 pip install uniprotptmpy
@@ -33,132 +36,81 @@ Or with [uv](https://docs.astral.sh/uv/):
 uv add uniprotptmpy
 ```
 
-Requires Python 3.12+. No third-party dependencies.
+Requires Python 3.12+. No third-party dependencies for the core package.
 
-## Quick Start
+## Quick Example
 
 ```python
 from uniprotptmpy import load
 
-# Load the bundled PTM database
-db = load()
-print(len(db))  # 748
+db = load()                   # bundled PTM database, no download needed
+print(len(db))                # 748
 
-# Look up by accession
+# Lookup by accession
 entry = db.get_by_id("PTM-0450")
-print(entry.name)  # (2-aminosuccinimidyl)acetic acid (Asn-Gly)
+print(entry.name)             # (2-aminosuccinimidyl)acetic acid (Asn-Gly)
 
-# Look up by name (case-insensitive)
+# Lookup by exact name (case-insensitive)
 entry = db.get_by_name("phosphoserine")
-print(entry.id)  # PTM-0253
+print(entry.id)               # PTM-0253
 
 # Free-text search across name, ID, target, and keywords
 results = db.search("acetylation")
+print(len(results))           # 17
 
-# Dict-style access (raises KeyError if not found)
+# Dict-style access, iteration, and formula helpers
 entry = db["PTM-0450"]
-
-# Iterate all entries
-for entry in db:
-    print(entry.id, entry.name)
+hydroxy = db.get_by_id("PTM-0476")
+print(hydroxy.correction_formula)  # O1
+print(hydroxy.dict_composition)    # {'O': 1}
+print(hydroxy.proforma_formula)    # O
 ```
 
-### Chemical Formulas
+## More
+
+<details>
+<summary>Downloading the latest data, TSV/CSV export, ptmlist.txt round-trip</summary>
 
 ```python
-entry = db.get_by_id("PTM-0476")  # 3-hydroxyproline
-print(entry.correction_formula)   # O1
-print(entry.dict_composition)     # {'O': 1}
-print(entry.proforma_formula)     # O
-```
+from uniprotptmpy import download, load, write_tsv, write_ptmlist, parse_ptm_list
 
-### Exporting to TSV/CSV
+# Download the latest list from UniProt's FTP site
+path = download()   # ~/.cache/uniprotptmpy/ptmlist.txt
+db = load(path)
 
-```python
-# Write all entries to a tab-separated file
+# Write every entry to TSV (or CSV)
 db.write_tsv("ptms.tsv")
-
-# Or CSV
 db.write_tsv("ptms.csv", delimiter=",")
 
-# Standalone function also available
-from uniprotptmpy import write_tsv
-write_tsv(db, "ptms.tsv")
-```
-
-### Writing back to ptmlist.txt format
-
-```python
-# Round-trip: write entries back to the original UniProt flat-file format
+# Round-trip back to the original UniProt flat-file format
 db.write_ptmlist("out/ptmlist.txt")
-
-# Re-parse the written file — identical entry count and field values
-from uniprotptmpy import parse_ptm_list
-db2 = parse_ptm_list("out/ptmlist.txt")
-
-# Standalone function
-from uniprotptmpy import write_ptmlist
-write_ptmlist(db, "out/ptmlist.txt")
+db2 = parse_ptm_list("out/ptmlist.txt")  # identical entry count and fields
 ```
 
-### Downloading the Latest Data
+</details>
 
-```python
-from uniprotptmpy import download, load
-
-path = download()   # downloads to ~/.cache/uniprotptmpy/ptmlist.txt
-db = load(path)     # load from the downloaded file
-```
-
-## HTTP API and MCP Server
-
-The optional `[server]` extra ships a FastAPI app that exposes the same
-database over a JSON REST API *and* over the
-[Model Context Protocol](https://modelcontextprotocol.io) so language-model
-tools can query the UniProt PTM vocabulary directly.
+<details>
+<summary>Local HTTP API and MCP server (<code>pip install uniprotptmpy[server]</code>)</summary>
 
 ```bash
 pip install uniprotptmpy[server]
 uvicorn uniprotptmpy.server.app:app --reload
 ```
 
-### REST endpoints
-
-| Method & path | Returns |
-|---------------|---------|
-| `GET /api/health` | Service metadata and entry count. |
-| `GET /api/entries?limit=&offset=` | Paginated full entries. |
-| `GET /api/entries/{id}` | One full entry by accession (`PTM-0450` or `0450`). |
-| `GET /api/entries/by-name/{name}` | One full entry by exact name. |
-| `GET /api/search?q=&limit=` | Search hits as lightweight summaries. |
-
-Search responses contain just `{id, name, feature_type, target,
-monoisotopic_mass}` to keep token cost low; call `/api/entries/{id}` on any
-hit for the full record (including taxonomic ranges and cross-references).
-
-### MCP server
-
-The same FastAPI app mounts an MCP endpoint at `POST /mcp` with three tools:
-
-| Tool | Purpose |
-|------|---------|
-| `get_by_id(id)` | Look up a single PTM by accession. |
-| `get_by_name(name)` | Exact name lookup. |
-| `search(query, limit=25)` | Free-text search returning summaries. |
-
-Tool responses use MCP's structured-output mechanism: the server emits an
-`outputSchema` per tool in `tools/list` and returns both `structuredContent`
-(typed Pydantic instance) and `content` (text fallback) on `tools/call`, so
-LLM clients can parse the response without re-reading the JSON string.
-
-Configure your MCP-aware client to point at `http://localhost:8000/mcp`
-(or wherever you deploy the app). Example with the Anthropic CLI:
+This starts a FastAPI app exposing the database as both a JSON REST API
+(`GET /api/entries/{id}`, `/api/search`, `/api/entries/by-name/{name}`, …)
+and an [MCP](https://modelcontextprotocol.io) endpoint at `POST /mcp` with
+`get_by_id`, `get_by_name`, and `search` tools, for pointing LLM clients
+directly at the UniProt PTM vocabulary:
 
 ```bash
 claude mcp add uniprot-ptm http://localhost:8000/mcp --transport http
 ```
 
-## API Overview
+</details>
+
+<details>
+<summary>Full API reference</summary>
 
 | Symbol | Description |
 |--------|-------------|
@@ -173,23 +125,33 @@ claude mcp add uniprot-ptm http://localhost:8000/mcp --transport http
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
 | `TaxonomicRange` | Frozen dataclass with `taxon_name`, `tax_id`, `description`, and `raw` fields. |
 
-## Development
+</details>
 
-```bash
-just install   # install dependencies with uv
-just lint      # ruff check
-just format    # ruff format
-just ty        # ty type check
-just test      # pytest
-just check     # lint + type check + test
-```
+See [`CHANGELOG.md`](https://github.com/tacular-omics/uniprotptmpy/blob/main/CHANGELOG.md)
+for release history.
+
+## Data Source
+
+Term data comes from [UniProt's PTM controlled vocabulary list](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt),
+maintained by the UniProt Consortium. See uniprot.org for the vocabulary's
+own license and citation guidance.
 
 ## Related Projects
+
+Part of the `tacular-omics` family of proteomics PTM-vocabulary packages:
 
 | Package | Description |
 |---------|-------------|
 | [unimodpy](https://github.com/tacular-omics/unimodpy) | Parse and query the UNIMOD mass spectrometry modifications database |
 | [psimodpy](https://github.com/tacular-omics/psimodpy) | Parse and query the PSI-MOD protein modification ontology |
+| [tacular](https://github.com/tacular-omics/tacular) | Broader MS-proteomics lookup library (amino acids, elements, fragment-ion masses) that bundles its own copies of UniProt-PTM alongside UNIMOD, PSI-MOD, RESID, XLMOD, and GNOme; the base library for peptacular and paftacular |
+
+## Citation
+
+If uniprotptmpy is useful in your research, please cite it — see
+[`CITATION.cff`](https://github.com/tacular-omics/uniprotptmpy/blob/main/CITATION.cff)
+or use the "Cite this repository" button on GitHub. Releases are archived on
+Zenodo (DOI badge above).
 
 ## License
 
