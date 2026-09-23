@@ -60,8 +60,11 @@ src/uniprotptmpy/
     models.py         # pydantic wire models (PtmEntry, PtmSummary, ...) + to_ptm_entry/to_ptm_summary
     dashboard.py      # dashboard_entries(): JSON payload for the browser (/data.json, docs/data.json)
 api/index.py          # Vercel entry point: `from uniprotptmpy.server.app import app`
-vercel.json           # Vercel function config (api/index.py, includeFiles docs/**)
-requirements.txt      # `.[server]`: what Vercel installs
+vercel.json           # installCommand `uv pip install '.[server]'`; one function (api/index.py,
+                      # maxDuration 10 s, includeFiles docs/**). No rewrites: the Vercel Python
+                      # runtime routes every path to the FastAPI app itself
+requirements.txt      # `.[server]`; legacy. @vercel/python ignores it when pyproject.toml exists,
+                      # which is why vercel.json sets installCommand
 docs/index.html       # static PTM browser; fetches data.json (GitHub Pages and the Vercel `/`)
 scripts/export_json.py     # writes docs/data.json (run by .github/workflows/pages.yml; not committed)
 scripts/release_version.py # shared tacular-omics version sync/check script; do not edit here
@@ -141,9 +144,10 @@ From `uniprotptmpy/__init__.py` (`__all__`):
 - 177 entries have no correction formula (`dict_composition`/`proforma_formula` are
   `None`) and 178 have no monoisotopic mass (PTM-0676 has a formula but no mass).
 - `FeatureType.DISULFID` exists but the bundled release has no entries of that type.
-- Vercel must install the `server` extra. If Vercel installs from `uv.lock` instead of
-  `requirements.txt`, the extra is missing and every request returns 500
-  (`FUNCTION_INVOCATION_FAILED`). Check `vercel.json` on main before changing deploy config.
+- Vercel: without `installCommand` the runtime installs from `pyproject.toml`/`uv.lock`
+  with no extras and every request fails with `ModuleNotFoundError: fastapi` (500,
+  `FUNCTION_INVOCATION_FAILED`). A catch-all rewrite to `/api/index` makes every request
+  404. Keep both as they are.
 - `docs/data.json` is built by the Pages workflow, not committed; the Vercel app serves
   the same payload from memory at `/data.json`.
 

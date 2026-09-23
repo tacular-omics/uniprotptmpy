@@ -22,7 +22,8 @@ offline.
 - **Formula helpers** computed for you (elemental composition dicts, ProForma-style formula strings)
 - **Round-trip export** to TSV/CSV and back to the original `ptmlist.txt` format
 - **[Online browser](https://tacular-omics.github.io/uniprotptmpy/)** — search, sort, and inspect every term, no install required
-- **Optional local FastAPI + [MCP](https://modelcontextprotocol.io) server** (`pip install uniprotptmpy[server]`) to expose the database over HTTP or to LLM tools
+- **Hosted REST API + [MCP](https://modelcontextprotocol.io) server** at [uniprot.tacular.dev](https://uniprot.tacular.dev) ([API docs](https://uniprot.tacular.dev/docs), MCP endpoint `https://uniprot.tacular.dev/mcp`), no install required
+- **Optional local FastAPI + MCP server** (`pip install uniprotptmpy[server]`) to expose the database over HTTP or to LLM tools
 
 ## Install
 
@@ -105,6 +106,14 @@ directly at the UniProt PTM vocabulary:
 
 ```bash
 claude mcp add uniprot-ptm http://localhost:8000/mcp --transport http
+```
+
+The same app is hosted at <https://uniprot.tacular.dev> (REST under `/api/...`,
+interactive docs at `/docs`), so you can skip the local install and point a client
+straight at the public MCP endpoint:
+
+```bash
+claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 ```
 
 </details>
