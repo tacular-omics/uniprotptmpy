@@ -13,7 +13,7 @@ abstract: >-
   uniprotptmpy is intended for proteomics software, annotation pipelines, and
   research scripts that need programmatic access to UniProt PTM terms. It
   requires Python 3.12 or later.
-version: "0.1.2"
+version: "0.2.0"
 authors:
   - family-names: Garrett
     given-names: Patrick T.
