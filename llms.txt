@@ -1,0 +1,39 @@
+# uniprotptmpy
+
+> Typed, dependency-free Python parser and query API for the UniProt post-translational
+> modification (PTM) controlled vocabulary (ptmlist.txt), bundled for offline use, with
+> an optional FastAPI REST API and MCP server.
+
+`from uniprotptmpy import load; db = load()` returns a `PtmDatabase` of 748 `PtmEntry`
+records from the bundled UniProt release. Look up by accession
+(`db.get_by_id("PTM-0253")` or `"0253"`), by case-insensitive exact name
+(`db.get_by_name("phosphoserine")`), by substring search (`db.search("acetyl")`), or
+with `db["..."]`. Entries carry target residue, positions, correction formula,
+monoisotopic/average mass, keywords, taxonomic ranges and cross-references to RESID,
+PSI-MOD, Unimod and ChEBI. `download()` fetches the latest list from UniProt;
+`write_tsv` and `write_ptmlist` export.
+
+A hosted REST + MCP server runs at https://uniprot.tacular.dev (MCP endpoint
+`/mcp`, streamable HTTP, tools `get_by_id`, `get_by_name`, `search`). Install
+`uniprotptmpy[server]` to run it locally with uvicorn.
+
+## Docs
+
+- [Full usage guide for LLMs](https://raw.githubusercontent.com/tacular-omics/uniprotptmpy/main/llms-full.txt): every public name with signature, REST routes, MCP tools, examples, gotchas
+- [README](https://github.com/tacular-omics/uniprotptmpy/blob/main/README.md): install, quick example, server
+- [CLAUDE.md](https://github.com/tacular-omics/uniprotptmpy/blob/main/CLAUDE.md): developer guide for coding agents (architecture, commands, conventions)
+- [CHANGELOG](https://github.com/tacular-omics/uniprotptmpy/blob/main/CHANGELOG.md): release history
+
+## API
+
+- [Public API source](https://github.com/tacular-omics/uniprotptmpy/blob/main/src/uniprotptmpy/__init__.py): `load`, `parse_ptm_list`, `download`, `write_tsv`, `write_ptmlist`, `PtmDatabase`, `PtmEntry`, `FeatureType`, `CrossReference`, `TaxonomicRange`
+- [Server source](https://github.com/tacular-omics/uniprotptmpy/blob/main/src/uniprotptmpy/server/app.py): FastAPI routes and MCP tools
+- [Hosted OpenAPI docs](https://uniprot.tacular.dev/docs): interactive REST reference
+- [PTM browser](https://tacular-omics.github.io/uniprotptmpy/): search every entry in the browser
+
+## Optional
+
+- [UniProt ptmlist.txt](https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt): the upstream vocabulary file
+- [PyPI](https://pypi.org/project/uniprotptmpy/): package page
+- [GitHub repository](https://github.com/tacular-omics/uniprotptmpy)
+- [Model Context Protocol](https://modelcontextprotocol.io): the MCP spec the server implements

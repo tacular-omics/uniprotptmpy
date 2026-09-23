@@ -1,0 +1,332 @@
+# uniprotptmpy
+
+> Typed, dependency-free Python parser and query API for the UniProt post-translational
+> modification (PTM) controlled vocabulary (ptmlist.txt), bundled for offline use, with
+> an optional FastAPI REST API and MCP server.
+
+This file is a self-contained usage guide for uniprotptmpy 0.2.x, written for LLMs and
+coding agents that use the package. Every name and example below was checked against
+the code.
+
+- Repository: https://github.com/tacular-omics/uniprotptmpy
+- PyPI: https://pypi.org/project/uniprotptmpy/
+- Hosted REST + MCP server: https://uniprot.tacular.dev (MCP at /mcp)
+- Browser: https://tacular-omics.github.io/uniprotptmpy/
+- Upstream data: https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/ptmlist.txt
+
+## What it is
+
+UniProt maintains a controlled vocabulary of post-translational modifications used in
+UniProtKB feature annotations (`MOD_RES`, `CROSSLNK`, `LIPID`, `CARBOHYD`, ...). Each
+entry has an accession (`PTM-0253`), a name (`Phosphoserine`), the target residue, the
+position class, a correction formula (the elemental change the PTM makes), masses,
+keywords, taxonomic ranges and cross-references to RESID, PSI-MOD, Unimod and ChEBI.
+
+uniprotptmpy parses UniProt's `ptmlist.txt` flat file into frozen dataclasses and an
+indexed `PtmDatabase`. The package bundles release 2026_01 (748 entries), so it works
+offline, and has no runtime dependencies.
+
+Part of the tacular-omics family. Sister packages with the same shape: `unimodpy`
+(UNIMOD) and `psimodpy` (PSI-MOD). `tacular` bundles its own copy of this vocabulary
+among others; `peff_uniprot_fetcher` uses uniprotptmpy to resolve PTM names.
+
+## Install
+
+```bash
+pip install uniprotptmpy            # core, no dependencies, Python >= 3.12
+pip install "uniprotptmpy[server]"  # + fastapi, uvicorn, mcp (2.x) for the REST/MCP server
+uv add uniprotptmpy
+```
+
+## Quick start
+
+```python
+from uniprotptmpy import load
+
+db = load()                     # bundled ptmlist.txt, no network
+print(len(db))                  # 748
+
+e = db.get_by_id("PTM-0253")    # also accepts "0253" or "ptm-0253"
+print(e.name)                   # Phosphoserine
+print(e.target)                 # Serine
+print(e.monoisotopic_mass)      # 79.966331
+print(e.correction_formula)     # H1 O3 P1
+print(e.dict_composition)       # {'H': 1, 'O': 3, 'P': 1}
+print(e.proforma_formula)       # H O3 P
+
+print(db.get_by_name("phosphoserine").id)   # PTM-0253 (case-insensitive exact match)
+print(len(db.search("acetylation")))        # 17 (substring over name/id/target/keywords)
+print(db["Phosphoserine"].id)               # PTM-0253 (id first, then name)
+```
+
+## Public API
+
+Everything below is importable from the top-level package (`uniprotptmpy.__all__`).
+
+### Loading
+
+```python
+load(source: Path | str | None = None) -> PtmDatabase
+```
+Load the database. With no argument, parses the bundled `data/ptmlist.txt`; with a
+path, parses that file (same as `parse_ptm_list`).
+
+```python
+parse_ptm_list(path: Path | str) -> PtmDatabase
+```
+Parse a UniProt `ptmlist.txt` file. The file header is skipped; each `ID ... //` block
+becomes one `PtmEntry`.
+
+```python
+download(dest: Path | str | None = None) -> Path
+```
+Download the current `ptmlist.txt` from the UniProt FTP site (`urllib`, no retries)
+to `dest`, default `~/.cache/uniprotptmpy/ptmlist.txt`. Creates parent directories.
+Returns the path. Does not parse it: pass the result to `load()`.
+
+### Writing
+
+```python
+write_tsv(entries: Iterable[PtmEntry], path: Path | str, *, delimiter: str = "\t") -> Path
+```
+Write entries as a table. Pass `delimiter=","` for CSV. Columns: `id, name,
+feature_type, target, amino_acid_position, polypeptide_position, correction_formula,
+proforma_formula, monoisotopic_mass, average_mass, cellular_location, keywords`, then
+one `xref_<database>` column per cross-reference database present (lower-cased, `-`
+to `_`, sorted: `xref_chebi, xref_psi_mod, xref_resid, xref_unimod` for the bundled
+data), then `taxonomic_ranges`. Multi-valued cells are joined with `"; "`. `None` is
+written as an empty cell. Creates parent directories; returns the path.
+
+```python
+write_ptmlist(entries: Iterable[PtmEntry], path: Path | str) -> Path
+```
+Write entries back to the `ptmlist.txt` entry-block format. Re-parsing the output with
+`parse_ptm_list` gives identical entries. The UniProt file header is not written.
+
+### PtmDatabase
+
+```python
+PtmDatabase(entries: Iterable[PtmEntry])
+```
+In-memory indexed collection. Normally built by `load()`.
+
+| member | purpose |
+|---|---|
+| `get_by_id(ac: str) -> PtmEntry \| None` | accession lookup; upper-cases and adds `PTM-` if missing |
+| `get_by_name(name: str) -> PtmEntry \| None` | case-insensitive exact name match (no whitespace trimming) |
+| `search(query: str) -> list[PtmEntry]` | case-insensitive substring over name, id, target and keywords, in file order |
+| `db[key]` | `get_by_id(key)` or else `get_by_name(key)`; raises `KeyError` if neither matches |
+| `iter(db)`, `len(db)` | iterate entries in file order; count |
+| `write_tsv(path, *, delimiter="\t") -> Path` | `write_tsv` over all entries |
+| `write_ptmlist(path) -> Path` | `write_ptmlist` over all entries |
+
+There is no mass search method; filter by iterating (see examples).
+
+### PtmEntry
+
+Frozen `slots` dataclass, one per vocabulary entry. Field names map to ptmlist.txt
+line codes; trailing periods are stripped.
+
+| field | type | ptmlist code | example (PTM-0253) |
+|---|---|---|---|
+| `id` | `str` | AC | `"PTM-0253"` |
+| `name` | `str` | ID | `"Phosphoserine"` |
+| `feature_type` | `FeatureType` | FT | `FeatureType.MOD_RES` |
+| `target` | `str` | TG | `"Serine"` (cross-links: `"Asparagine-Glycine"`) |
+| `amino_acid_position` | `str \| None` | PA | `"Amino acid side chain"` |
+| `polypeptide_position` | `str \| None` | PP | `"Anywhere"` |
+| `correction_formula` | `str \| None` | CF | `"H1 O3 P1"` (raw; counts may be negative) |
+| `monoisotopic_mass` | `float \| None` | MM | `79.966331` |
+| `average_mass` | `float \| None` | MA | `79.98` |
+| `cellular_location` | `str \| None` | LC | `"Intracellular localisation"` |
+| `taxonomic_ranges` | `tuple[TaxonomicRange, ...]` | TR | Archaea, Bacteria, Eukaryota, Viruses |
+| `keywords` | `tuple[str, ...]` | KW | `("Phosphoprotein",)` |
+| `cross_references` | `tuple[CrossReference, ...]` | DR | ChEBI, RESID, PSI-MOD, Unimod |
+
+Computed properties:
+
+- `dict_composition -> dict[str, int] | None`: `correction_formula` parsed to element
+  counts, zero counts dropped; `None` when there is no formula.
+- `proforma_formula -> str | None`: the composition as a space-separated formula with
+  C, then H, then other elements alphabetically, count omitted when 1
+  (`"H-3 N-1"`, `"H O3 P"`); `None` when there is no formula.
+
+### FeatureType
+
+`StrEnum` of UniProt feature keys: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`,
+`DISULFID`. Compares equal to its string value (`e.feature_type == "MOD_RES"`).
+Bundled counts: MOD_RES 376, CARBOHYD 165, CROSSLNK 159, LIPID 48, DISULFID 0.
+
+### CrossReference
+
+Frozen dataclass: `database: str` (`"RESID"`, `"PSI-MOD"`, `"Unimod"`, `"ChEBI"`),
+`accession: str` (`"AA0037"`, `"MOD:00046"`, `"21"`, `"CHEBI:83421"`). Unimod
+accessions are the bare record number as a string.
+
+### TaxonomicRange
+
+Frozen dataclass parsed from a TR line such as `Archaea; taxId:2157 (Archaea)`:
+`taxon_name: str` (`"Archaea"`), `tax_id: int | None` (`2157`), `description: str`
+(text in the parentheses, `""` if none), `raw: str` (the full line without the
+trailing period).
+
+### __version__
+
+`uniprotptmpy.__version__` is the package version string.
+
+## Worked examples
+
+### Filter by feature type and target
+
+```python
+from uniprotptmpy import FeatureType, load
+
+db = load()
+lipids = [e for e in db if e.feature_type == FeatureType.LIPID]
+print(len(lipids))                                  # 48
+lysine_mods = [e for e in db if e.target == "Lysine"]
+print(all(e.target == "Lysine" for e in lysine_mods))  # True
+```
+
+### Find PTMs by mass
+
+```python
+from uniprotptmpy import load
+
+db = load()
+acetyl = 42.010565
+hits = [e for e in db if e.monoisotopic_mass is not None and abs(e.monoisotopic_mass - acetyl) < 0.001]
+print(len(hits))                  # 16
+print(hits[0].id, hits[0].name)   # PTM-0180 N2-acetylarginine
+```
+
+### Map to other ontologies
+
+```python
+from uniprotptmpy import load
+
+db = load()
+e = db.get_by_id("PTM-0253")
+xrefs = {x.database: x.accession for x in e.cross_references}
+print(xrefs["PSI-MOD"], xrefs["RESID"], xrefs["Unimod"])   # MOD:00046 AA0037 21
+
+# Reverse: every UniProt PTM that points at Unimod:1 (Acetyl)
+acetyl = [e for e in db if any(x.database == "Unimod" and x.accession == "1" for x in e.cross_references)]
+print(len(acetyl))   # 16
+```
+
+### Use the latest UniProt release
+
+```python
+from uniprotptmpy import download, load
+
+path = download()   # ~/.cache/uniprotptmpy/ptmlist.txt (network)
+db = load(path)
+```
+
+### Export and round-trip
+
+```python
+import tempfile
+from pathlib import Path
+
+from uniprotptmpy import load, parse_ptm_list
+
+db = load()
+out = Path(tempfile.mkdtemp())
+db.write_tsv(out / "ptms.tsv")
+db.write_tsv(out / "ptms.csv", delimiter=",")
+db.write_ptmlist(out / "ptmlist.txt")
+print(list(parse_ptm_list(out / "ptmlist.txt")) == list(db))   # True
+```
+
+### Build a subset database
+
+```python
+from uniprotptmpy import PtmDatabase, load
+
+db = load()
+glyco = PtmDatabase(e for e in db if e.feature_type == "CARBOHYD")
+print(len(glyco))   # 165
+```
+
+## REST API (server extra)
+
+Hosted at https://uniprot.tacular.dev (Vercel). Run locally:
+
+```bash
+pip install "uniprotptmpy[server]"
+uvicorn uniprotptmpy.server.app:app --reload     # http://127.0.0.1:8000
+```
+
+The ASGI app is `uniprotptmpy.server.app:app` (also importable as
+`from uniprotptmpy.server import app, mcp`). The database is loaded once at import.
+
+| route | response |
+|---|---|
+| `GET /` | HTML PTM browser (from `docs/index.html`; 404 if not bundled) |
+| `GET /data.json` | JSON array of every entry for the browser, cached 1 h |
+| `GET /api/health` | `{"ok": true, "package": "uniprotptmpy", "version": "...", "count": 748}` |
+| `GET /api/entries?limit=50&offset=0` | `{"total", "limit", "offset", "items": [PtmEntry]}`; `limit` 1-500, `offset` >= 0 |
+| `GET /api/entries/{id}` | `PtmEntry`; `PTM-0253` or `0253`; 404 `{"detail": "No entry for id='...'"}` |
+| `GET /api/entries/by-name/{name}` | `PtmEntry`; case-insensitive exact name; 404 if missing |
+| `GET /api/search?q=...&limit=50` | `{"query", "total", "limit", "items": [PtmSummary]}`; `q` required (min length 1), `limit` 1-500 |
+| `POST /mcp` | MCP endpoint (below) |
+| `GET /docs`, `GET /redoc`, `GET /openapi.json` | OpenAPI docs |
+
+Invalid query parameters return 422. JSON `PtmEntry` has every dataclass field plus
+`proforma_formula` and `dict_composition`; `feature_type` is a string;
+`taxonomic_ranges` and `cross_references` are lists of objects. `PtmSummary` is
+`{id, name, feature_type, target, monoisotopic_mass}`; fetch the full record with
+`/api/entries/{id}`.
+
+```bash
+curl https://uniprot.tacular.dev/api/entries/PTM-0253
+curl "https://uniprot.tacular.dev/api/search?q=acetyl&limit=5"
+```
+
+## MCP server (server extra)
+
+The MCP server is served over streamable HTTP (stateless) at `/mcp` of the same
+FastAPI app. There is no stdio transport and no console script. Connect a client to
+the hosted endpoint or a local uvicorn:
+
+```bash
+claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
+claude mcp add uniprot-ptm http://localhost:8000/mcp --transport http
+```
+
+Server name `uniprotptmpy`, instructions "Query the UniProt PTM controlled vocabulary."
+Tools (each declares an `outputSchema`; results are in `structuredContent`):
+
+| tool | arguments | returns |
+|---|---|---|
+| `get_by_id` | `id: str` (`"PTM-0450"` or `"0450"`) | full `PtmEntry` or `null` |
+| `get_by_name` | `name: str` (exact, case-insensitive) | full `PtmEntry` or `null` |
+| `search` | `query: str`, `limit: int = 25` | list of `PtmSummary` |
+
+A miss returns `{"result": null}`, not an error. Typical flow: `search`, then
+`get_by_id` on a returned `id`.
+
+The module-level MCPServer is `uniprotptmpy.server.app.mcp`; the HTTP handler builds a
+fresh one per request because serverless runtimes send no ASGI lifespan events.
+
+## Gotchas
+
+- Lookups return `None` on a miss; only `db[key]` raises `KeyError`.
+- `get_by_name` needs the exact name; use `search` for partial matches. `search("")`
+  returns every entry.
+- `search` matches substrings of the target and keywords too: `search("serine")`
+  returns every entry whose target is Serine, not only names containing "serine".
+- 177 entries have no correction formula and 178 no monoisotopic mass; check for
+  `None` before arithmetic (PTM-0676 has a formula but no mass).
+- `correction_formula` is the raw UniProt string (`"H-3 N-1"`, explicit `1` counts);
+  use `dict_composition` for arithmetic and `proforma_formula` for display.
+- Cross-link targets name both residues (`"Asparagine-Glycine"`); compare with `in`
+  or split on `-`.
+- `feature_type` is a `StrEnum`: `str(e.feature_type)` gives `"MOD_RES"`.
+- `download()` has no timeout or checksum and overwrites the destination.
+- Importing `uniprotptmpy.server` without the `server` extra raises `ImportError`;
+  the core package never imports it.
+- Data license and citation for the vocabulary itself: see uniprot.org. The package is
+  MIT; cite it via CITATION.cff (Zenodo DOI 10.5281/zenodo.22926364).
