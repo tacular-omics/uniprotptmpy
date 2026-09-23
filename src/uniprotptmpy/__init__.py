@@ -7,7 +7,7 @@ from uniprotptmpy.database import PtmDatabase
 from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, TaxonomicRange
 from uniprotptmpy.parser import load, parse_ptm_list
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 __all__ = [
     "__version__",
