@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, Response
 from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import Field
 
 import uniprotptmpy
 from uniprotptmpy.server.dashboard import dashboard_entries
@@ -26,7 +28,7 @@ _PACKAGE = "uniprotptmpy"
 
 
 # Render dashboard payload once at import time.
-_DATA_JSON = json.dumps(dashboard_entries(), separators=(",", ":")).encode()
+_DATA_JSON = json.dumps(dashboard_entries(_db), separators=(",", ":")).encode()
 
 
 # Locate the static dashboard. On Vercel the function bundle includes ``docs/``
@@ -71,10 +73,10 @@ def _build_mcp() -> MCPServer:
         return to_ptm_entry(entry) if entry else None
 
     @mcp.tool()
-    def search(query: str, limit: int = 25) -> list[PtmSummary]:
+    def search(query: str, limit: Annotated[int, Field(ge=1, le=500)] = 25) -> list[PtmSummary]:
         """Free-text search over name, ID, target, and keywords.
 
-        Returns up to ``limit`` lightweight summaries.  Call ``get_by_id`` on
+        Returns up to ``limit`` (1-500) lightweight summaries.  Call ``get_by_id`` on
         any returned ``id`` to fetch the full entry.
         """
         return [to_ptm_summary(e) for e in _db.search(query)[:limit]]
