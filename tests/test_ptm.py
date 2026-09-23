@@ -2,8 +2,7 @@ import dataclasses
 
 import pytest
 
-from uniprotptmpy import CrossReference, FeatureType, PtmDatabase, PtmEntry, load, parse_ptm_list
-
+from uniprotptmpy import FeatureType, PtmDatabase, parse_ptm_list
 
 # --- Entry count ---
 
@@ -307,8 +306,7 @@ def test_all_entries_have_nonempty_name(db: PtmDatabase) -> None:
 def test_parse_minimal(tmp_path):
     data = tmp_path / "mini.txt"
     data.write_text(
-        "ID   Test mod\nAC   PTM-0001\nFT   MOD_RES\nTG   Alanine.\n"
-        "MM   15.994915\nMA   16.00\n//\n",
+        "ID   Test mod\nAC   PTM-0001\nFT   MOD_RES\nTG   Alanine.\nMM   15.994915\nMA   16.00\n//\n",
         encoding="utf-8",
     )
     result = parse_ptm_list(data)

@@ -1,6 +1,6 @@
 """Tests for the ptmlist.txt round-trip writer."""
 
-from uniprotptmpy import PtmDatabase, load, parse_ptm_list, write_ptmlist
+from uniprotptmpy import PtmDatabase, parse_ptm_list, write_ptmlist
 
 
 def test_write_produces_file(db: PtmDatabase, tmp_path) -> None:
