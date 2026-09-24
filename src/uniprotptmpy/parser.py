@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import re
 import warnings
 from importlib.resources import as_file, files
@@ -148,12 +149,28 @@ def parse_ptm_list(path: Path | str) -> PtmDatabase:
     return PtmDatabase(entries)
 
 
-def load(source: Path | str | None = None, *, refresh: bool = False) -> PtmDatabase:
+@functools.cache
+def _load_bundled() -> PtmDatabase:
+    """Parse the bundled ptmlist.txt once; backs ``load(cache=True)``."""
+    return load()
+
+
+def load(source: Path | str | None = None, *, refresh: bool = False, cache: bool = False) -> PtmDatabase:
     """Load the PTM database: the bundled ptmlist.txt by default, or ``source`` if given.
 
     ``refresh=True`` downloads the current release from UniProt to the cache
     (``download(force=True)``) and parses that instead; it cannot be combined with ``source``.
+
+    ``cache=True`` parses the bundled file only once per process and returns that same
+    database object on every later ``load(cache=True)`` call. The returned database is
+    shared by every ``load(cache=True)`` caller in the process: do not modify it (or its
+    attributes); a change is seen by every later caller. It cannot be combined with
+    ``source`` or ``refresh`` (``ValueError``). Default False: a new database each call.
     """
+    if cache:
+        if source is not None or refresh:
+            raise ValueError("cache=True only applies to the bundled file; drop source and refresh")
+        return _load_bundled()
     if refresh:
         if source is not None:
             raise ValueError("pass either source or refresh=True, not both")

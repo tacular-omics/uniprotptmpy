@@ -9,3 +9,7 @@ class UniprotPtmError(Exception):
 
 class UniprotPtmParseError(UniprotPtmError, ValueError):
     """Malformed ptmlist.txt input or correction formula. Also a ValueError."""
+
+
+class UniprotPtmKeyError(UniprotPtmError, KeyError):
+    """``db[key]`` found no entry. Also a ``KeyError`` (not a ``ValueError``); ``args[0]`` is the key looked up."""

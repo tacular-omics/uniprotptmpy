@@ -165,7 +165,9 @@ def test_get_by_id_invalid_returns_none(key: object) -> None:
 
 def test_load_signature() -> None:
     sig = inspect.signature(load)
-    assert list(sig.parameters) == ["source", "refresh"]
+    assert list(sig.parameters) == ["source", "refresh", "cache"]
+    assert sig.parameters["cache"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert sig.parameters["cache"].default is False
     assert sig.parameters["refresh"].kind is inspect.Parameter.KEYWORD_ONLY
     assert sig.parameters["refresh"].default is False
 
