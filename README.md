@@ -139,7 +139,7 @@ claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 | `parse_ptm_list(path)` | Parse a ptmlist.txt file into a `PtmDatabase`. |
 | `write_tsv(entries, path, *, delimiter)` | Write entries to a TSV (or CSV) file. |
 | `write_ptmlist(entries, path)` | Write entries back to UniProt ptmlist.txt flat-file format. |
-| `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `search_mass(delta, *, tolerance=0.01, unit="da", site=None, position=None)` (`(entry, error)` pairs within `tolerance` Da), `get_by_site(residue)` (one residue), `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
+| `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `search_mass(delta, *, tolerance=0.01, tolerance_unit="da", site=None, position=None)` (`(entry, error)` pairs within `tolerance` Da), `get_by_site(residue)` (one residue), `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
 | `PtmEntry` | Frozen dataclass with all PTM fields, plus `accession`, `dict_composition`, `proforma_formula` (`"HO3P"`), `psimod_ids` and `unimod_ids` properties; `get_mass(*, monoisotopic=True)` (UniProt's own mass or `None`); `resolve("psimod" \| "unimod")` returns the linked entries (needs the `[link]` extra). |
 | `UniprotPtmError`, `UniprotPtmParseError`, `UniprotPtmKeyError` | Package exceptions; the parse error is also a `ValueError`, and `UniprotPtmKeyError` (raised by `db[key]` on a miss) is also a `KeyError`. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
