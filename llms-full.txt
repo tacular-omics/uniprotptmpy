@@ -23,7 +23,7 @@ position class, a correction formula (the elemental change the PTM makes), masse
 keywords, taxonomic ranges and cross-references to RESID, PSI-MOD, Unimod and ChEBI.
 
 uniprotptmpy parses UniProt's `ptmlist.txt` flat file into frozen dataclasses and an
-indexed `PtmDatabase`. The package bundles release 2026_01 (748 entries), so it works
+indexed `PtmDatabase`. The package bundles release 2026_03 (750 entries), so it works
 offline, and has no runtime dependencies.
 
 Part of the tacular-omics family. Sister packages with the same shape: `unimodpy`
@@ -44,7 +44,7 @@ uv add uniprotptmpy
 from uniprotptmpy import load
 
 db = load()                     # bundled ptmlist.txt, no network
-print(len(db))                  # 748
+print(len(db))                  # 750
 
 e = db.get_by_id("PTM-0253")    # also accepts "0253" or "ptm-0253"
 print(e.name)                   # Phosphoserine
@@ -154,18 +154,18 @@ line codes; trailing periods are stripped.
 
 Computed properties:
 
-- `accession -> str`: same as `id` (`"PTM-0253"`), named as in psimodpy and unimodpy.
+- `accession -> str`: same as `id` (`"PTM-0253"`); psimodpy and unimodpy entries have `accession` too.
 - `dict_composition -> dict[str, int] | None`: `correction_formula` parsed to element
   counts, zero counts dropped, isotopes keyed like `"13C"`; `None` when there is no
-  formula. Raises `UniprotPtmParseError` if the CF cannot be parsed.
+  formula or the CF cannot be parsed (`load` warns about such entries).
 - `proforma_formula -> str | None`: the composition as a ProForma formula without
   spaces, C, then H, then other elements alphabetically, count omitted when 1,
-  isotopes bracketed (`"H-3N-1"`, `"HO3P"`, `"[13C6]"`); `None` when there is no formula.
+  isotopes bracketed (`"H-3N-1"`, `"HO3P"`, `"[13C6]"`); `None` when `dict_composition` is.
 
 ### Errors
 
 `UniprotPtmError(Exception)` is the base; `UniprotPtmParseError(UniprotPtmError,
-ValueError)` is raised for malformed `ptmlist.txt` input or correction formulas.
+ValueError)` is raised for malformed `ptmlist.txt` input (and by the internal CF parser).
 
 ### FeatureType
 
@@ -282,7 +282,7 @@ The ASGI app is `uniprotptmpy.server.app:app` (also importable as
 |---|---|
 | `GET /` | HTML PTM browser (from `docs/index.html`; 404 if not bundled) |
 | `GET /data.json` | JSON array of every entry for the browser, cached 1 h |
-| `GET /api/health` | `{"ok": true, "package": "uniprotptmpy", "version": "...", "count": 748}` |
+| `GET /api/health` | `{"ok": true, "package": "uniprotptmpy", "version": "...", "count": 750}` |
 | `GET /api/entries?limit=50&offset=0` | `{"total", "limit", "offset", "items": [PtmEntry]}`; `limit` 1-500, `offset` >= 0 |
 | `GET /api/entries/{id}` | `PtmEntry`; `PTM-0253` or `0253`; 404 `{"detail": "No entry for id='...'"}` |
 | `GET /api/entries/by-name/{name}` | `PtmEntry`; case-insensitive exact name; 404 if missing |
@@ -332,7 +332,7 @@ fresh one per request because serverless runtimes send no ASGI lifespan events.
 
 - Lookups return `None` on a miss; only `db[key]` raises `KeyError`.
 - `get_by_name` needs the exact name; use `search` for partial matches. `search("")`
-  returns every entry.
+  returns every entry; a non-str query (`None`) returns `[]`.
 - `search` matches substrings of the target and keywords too: `search("serine")`
   returns every entry whose target is Serine, not only names containing "serine".
 - 177 entries have no correction formula and 178 no monoisotopic mass; check for

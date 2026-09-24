@@ -3,7 +3,7 @@
 ## Project overview
 
 uniprotptmpy parses and queries UniProt's post-translational modification controlled
-vocabulary (`ptmlist.txt`, 748 entries in the bundled 2026_01 release). The core
+vocabulary (`ptmlist.txt`, 750 entries in the bundled 2026_03 release). The core
 package is pure Python with **no runtime dependencies** and works offline from the
 bundled file. An optional `server` extra adds a FastAPI REST API and an MCP server,
 deployed on Vercel at `https://uniprot.tacular.dev`, plus a static browser on GitHub

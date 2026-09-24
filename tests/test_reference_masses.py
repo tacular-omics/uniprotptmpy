@@ -22,11 +22,9 @@ _ELECTRON: float = _TABLE["electron_mass"]
 MONO_TOL = 5e-5  # MM is given to 6 decimals; atomic mass tables differ by up to ~1e-5
 AVG_TOL = 0.02  # MA is given to 2 decimals
 
-_SWAPPED = "MM and MA are swapped in ptmlist.txt: upstream data error"
 KNOWN_MISMATCHES: dict[str, str] = {
     "PTM-0681": "MM 781.125835 does not match CF C36 H41 N13 O17 P2 S1 (781.1459): upstream data error",
     "PTM-0741": "MM 104.0261 is C7 H4 O1 (104.026215) truncated, not rounded, to 4 decimals: upstream",
-    **{f"PTM-{n:04d}": _SWAPPED for n in range(745, 774)},
 }
 
 # Permanently charged (quaternary ammonium / sulfonium) residues: UniProt's MM is the
@@ -76,16 +74,6 @@ def test_known_mismatches_still_mismatch(db: PtmDatabase) -> None:
         e = db[ptm_id]
         assert e.monoisotopic_mass is not None
         assert abs(_mass(e.dict_composition or {}, "mono") - e.monoisotopic_mass) > MONO_TOL, reason
-
-
-def test_swapped_entries_match_when_unswapped(db: PtmDatabase) -> None:
-    for ptm_id, reason in KNOWN_MISMATCHES.items():
-        if reason != _SWAPPED:
-            continue
-        e = db[ptm_id]
-        comp = e.dict_composition or {}
-        assert e.average_mass == pytest.approx(_mass(comp, "mono"), abs=MONO_TOL)
-        assert e.monoisotopic_mass == pytest.approx(_mass(comp, "avg"), abs=AVG_TOL)
 
 
 @pytest.mark.parametrize(

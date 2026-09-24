@@ -8,7 +8,7 @@ from uniprotptmpy import FeatureType, PtmDatabase, parse_ptm_list
 
 
 def test_entry_count(db: PtmDatabase) -> None:
-    assert len(db) == 748
+    assert len(db) == 750
 
 
 # --- Scalar field parsing (PTM-0450 is the "full fields" anchor) ---

@@ -4,7 +4,7 @@
 > modification (PTM) controlled vocabulary (ptmlist.txt), bundled for offline use, with
 > an optional FastAPI REST API and MCP server.
 
-`from uniprotptmpy import load; db = load()` returns a `PtmDatabase` of 748 `PtmEntry`
+`from uniprotptmpy import load; db = load()` returns a `PtmDatabase` of 750 `PtmEntry`
 records from the bundled UniProt release. Look up by accession
 (`db.get_by_id("PTM-0253")` or `"0253"`), by case-insensitive exact name
 (`db.get_by_name("phosphoserine")`), by substring search (`db.search("acetyl")`), or

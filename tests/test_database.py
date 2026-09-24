@@ -39,6 +39,17 @@ def test_empty_database() -> None:
     assert db.search("anything") == []
 
 
+@pytest.mark.parametrize("query", [None, 42, b"acetyl"])
+def test_search_non_str_returns_empty(query: object) -> None:
+    db = PtmDatabase([_make_entry(keywords=("Acetylation",))])
+    assert db.search(query) == []  # type: ignore[arg-type]
+
+
+def test_get_by_name_non_str_returns_none() -> None:
+    db = PtmDatabase([_make_entry()])
+    assert db.get_by_name(None) is None  # type: ignore[arg-type]
+
+
 def test_getitem_by_name_fallback() -> None:
     """__getitem__ falls back to name lookup when ID lookup fails."""
     entry = _make_entry(name="Phosphoserine")
