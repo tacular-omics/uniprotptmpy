@@ -153,5 +153,6 @@ def test_bundled_tsv_equals_write_tsv_output(db: PtmDatabase, tmp_path) -> None:
 
     out = tmp_path / "ptm.tsv"
     write_tsv(db, out)
-    bundled = files("uniprotptmpy").joinpath("data/ptmlist.tsv").read_bytes()
-    assert out.read_bytes() == bundled
+    # Text mode: a Windows git checkout may give the bundled file CRLF line endings.
+    bundled = files("uniprotptmpy").joinpath("data/ptmlist.tsv").read_text(encoding="utf-8")
+    assert out.read_text(encoding="utf-8") == bundled
