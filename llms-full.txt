@@ -112,10 +112,11 @@ In-memory indexed collection. Normally built by `load()`.
 
 | member | purpose |
 |---|---|
-| `get_by_id(ac: str) -> PtmEntry \| None` | accession lookup; upper-cases and adds `PTM-` if missing |
+| `get_by_id(ac: int \| str) -> PtmEntry \| None` | accession lookup: `"PTM-0450"`, `"ptm-0450"`, `"0450"`, `"450"` or `450`; `None` on a miss |
 | `get_by_name(name: str) -> PtmEntry \| None` | case-insensitive exact name match (no whitespace trimming) |
 | `search(query: str) -> list[PtmEntry]` | case-insensitive substring over name, id, target and keywords, in file order |
 | `db[key]` | `get_by_id(key)` or else `get_by_name(key)`; raises `KeyError` if neither matches |
+| `db.get(key, default=None)` | `db[key]`, or `default` instead of `KeyError` |
 | `iter(db)`, `len(db)` | iterate entries in file order; count |
 | `write_tsv(path, *, delimiter="\t") -> Path` | `write_tsv` over all entries |
 | `write_ptmlist(path) -> Path` | `write_ptmlist` over all entries |

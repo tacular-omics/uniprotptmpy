@@ -95,3 +95,41 @@ def test_iter_preserves_order() -> None:
     entries = [_make_entry(id=f"PTM-{i:04d}", name=f"Mod {i}") for i in range(3)]
     db = PtmDatabase(entries)
     assert list(db) == entries
+
+
+# ---------------------------------------------------------------------------
+# Uniform lookup: [] / get / in agree, and match psimodpy and unimodpy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("key", ["PTM-0450", "ptm-0450", "0450", "450", 450, "PTM-450", "PTM-00450", " PTM-0450 "])
+def test_bundled_get_accepts_every_id_form(key: object) -> None:
+    from uniprotptmpy import load
+
+    db = load()
+    assert db.get(key) is db["PTM-0450"]
+    assert key in db
+
+
+@pytest.mark.parametrize("key", ["PTM-9999", "PTM-abc", "foo", "", None, 450.0, -1, ("PTM-0001",), ["PTM-0001"]])
+def test_get_missing_or_malformed_returns_default(key: object) -> None:
+    db = PtmDatabase([_make_entry("PTM-0001", "Test mod")])
+    assert db.get(key) is None
+    sentinel = object()
+    assert db.get(key, sentinel) is sentinel
+    assert key not in db
+    with pytest.raises(KeyError):
+        db[key]  # ty: ignore[invalid-argument-type]
+
+
+def test_get_by_id_int_and_unpadded() -> None:
+    db = PtmDatabase([_make_entry("PTM-0001", "Test mod")])
+    assert db.get_by_id(1) is db["PTM-0001"]
+    assert db.get_by_id("1") is db["PTM-0001"]
+    assert db.get_by_id(1.0) is None  # ty: ignore[invalid-argument-type]
+    assert db.get_by_id(None) is None  # ty: ignore[invalid-argument-type]
+
+
+def test_get_by_name() -> None:
+    db = PtmDatabase([_make_entry("PTM-0001", "Test mod")])
+    assert db.get("TEST MOD") is db["PTM-0001"]
