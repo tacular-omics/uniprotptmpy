@@ -15,7 +15,7 @@ offline.
 
 ## Highlights
 
-- **Bundled, offline data** — 748 PTM entries shipped with the package; no network calls needed
+- **Bundled, offline data** — 750 PTM entries shipped with the package; no network calls needed
 - **Zero core dependencies** — pure Python, `pip install` and go
 - **Typed, immutable models** with `py.typed` (PEP 561) for IDE autocomplete and static checking
 - **Rich lookups** — by accession (`PTM-0450`), exact name, free-text search across name/target/keywords, subscript access, and iteration
@@ -45,7 +45,7 @@ Requires Python 3.12+. No third-party dependencies for the core package.
 from uniprotptmpy import load
 
 db = load()                   # bundled PTM database, no download needed
-print(len(db))                # 748
+print(len(db))                # 750
 
 # Lookup by accession
 entry = db.get_by_id("PTM-0450")

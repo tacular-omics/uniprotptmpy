@@ -276,7 +276,7 @@ def test_unparseable_cf_warns_at_load_and_raises_on_access(tmp_path: Path) -> No
 def test_bundled_load_emits_no_warnings() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        assert len(load()) == 748
+        assert len(load()) == 750
 
 
 def test_id_inside_open_block_raises_parse_error(tmp_path: Path) -> None:

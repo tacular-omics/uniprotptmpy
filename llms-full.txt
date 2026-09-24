@@ -23,7 +23,7 @@ position class, a correction formula (the elemental change the PTM makes), masse
 keywords, taxonomic ranges and cross-references to RESID, PSI-MOD, Unimod and ChEBI.
 
 uniprotptmpy parses UniProt's `ptmlist.txt` flat file into frozen dataclasses and an
-indexed `PtmDatabase`. The package bundles release 2026_01 (748 entries), so it works
+indexed `PtmDatabase`. The package bundles release 2026_03 (750 entries), so it works
 offline, and has no runtime dependencies.
 
 Part of the tacular-omics family. Sister packages with the same shape: `unimodpy`
@@ -44,7 +44,7 @@ uv add uniprotptmpy
 from uniprotptmpy import load
 
 db = load()                     # bundled ptmlist.txt, no network
-print(len(db))                  # 748
+print(len(db))                  # 750
 
 e = db.get_by_id("PTM-0253")    # also accepts "0253" or "ptm-0253"
 print(e.name)                   # Phosphoserine
@@ -282,7 +282,7 @@ The ASGI app is `uniprotptmpy.server.app:app` (also importable as
 |---|---|
 | `GET /` | HTML PTM browser (from `docs/index.html`; 404 if not bundled) |
 | `GET /data.json` | JSON array of every entry for the browser, cached 1 h |
-| `GET /api/health` | `{"ok": true, "package": "uniprotptmpy", "version": "...", "count": 748}` |
+| `GET /api/health` | `{"ok": true, "package": "uniprotptmpy", "version": "...", "count": 750}` |
 | `GET /api/entries?limit=50&offset=0` | `{"total", "limit", "offset", "items": [PtmEntry]}`; `limit` 1-500, `offset` >= 0 |
 | `GET /api/entries/{id}` | `PtmEntry`; `PTM-0253` or `0253`; 404 `{"detail": "No entry for id='...'"}` |
 | `GET /api/entries/by-name/{name}` | `PtmEntry`; case-insensitive exact name; 404 if missing |
