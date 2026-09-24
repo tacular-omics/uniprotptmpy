@@ -4,7 +4,7 @@
 > modification (PTM) controlled vocabulary (ptmlist.txt), bundled for offline use, with
 > an optional FastAPI REST API and MCP server.
 
-This file is a self-contained usage guide for uniprotptmpy 0.2.x, written for LLMs and
+This file is a self-contained usage guide for uniprotptmpy 1.x, written for LLMs and
 coding agents that use the package. Every name and example below was checked against
 the code.
 
