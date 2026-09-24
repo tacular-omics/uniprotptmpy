@@ -2,14 +2,45 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from uniprotptmpy import PtmDatabase, load
 
 
-def dashboard_entries(db: PtmDatabase | None = None) -> list[dict]:
+class DashboardXref(TypedDict):
+    database: str
+    accession: str
+
+
+class DashboardTaxon(TypedDict):
+    taxon_name: str
+    description: str
+
+
+class DashboardRow(TypedDict):
+    """One entry in the dashboard payload (``/data.json``, ``docs/data.json``)."""
+
+    id: str
+    name: str
+    feature_type: str
+    target: str
+    amino_acid_position: str | None
+    polypeptide_position: str | None
+    correction_formula: str | None
+    proforma_formula: str | None
+    monoisotopic_mass: float | None
+    average_mass: float | None
+    cellular_location: str | None
+    keywords: list[str]
+    cross_references: list[DashboardXref]
+    taxonomic_ranges: list[DashboardTaxon]
+
+
+def dashboard_entries(db: PtmDatabase | None = None) -> list[DashboardRow]:
     """Return the dashboard payload for ``db`` (the bundled database if omitted)."""
     if db is None:
         db = load()
-    entries: list[dict] = []
+    entries: list[DashboardRow] = []
     for entry in db:
         entries.append(
             {
