@@ -32,6 +32,11 @@ server = [
     "uvicorn>=0.30",
     "mcp>=2.1.1,<3",
 ]
+# entry.resolve("psimod" | "unimod") and the get_mass() fallback to linked entries.
+link = [
+    "psimodpy>=1.0,<2",
+    "unimodpy>=1.0,<2",
+]
 
 [project.urls]
 Homepage = "https://github.com/tacular-omics/uniprotptmpy"

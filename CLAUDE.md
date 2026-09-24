@@ -108,6 +108,8 @@ without entering `TestClient` as a context manager to mimic Vercel.
 From `uniprotptmpy/__init__.py` (`__all__`):
 
 - Mass search (1.1): `db.search_mass(delta, *, tolerance=0.01, unit="da", site=None, position=None)` over `monoisotopic_mass`, returns `(entry, delta - mass)` closest first; `db.get_by_site(site)`. The index and site/position rules live in `_mass.py`, identical in psimodpy, unimodpy and uniprotptmpy: keep the three copies in sync.
+- `entry.get_mass(*, monoisotopic=True)` (1.1) returns `monoisotopic_mass`/`average_mass`, falling back to linked PSI-MOD then Unimod masses when the `link` extra is installed; `search_mass` indexes `get_mass()`.
+- Links (1.1), in `_links.py`: `entry.psimod_ids`/`unimod_ids` (no deps); `entry.resolve("psimod"|"unimod")` needs the `link` extra (psimodpy, unimodpy; imported lazily, never at `import uniprotptmpy`). Without the extra it raises `UniprotPtmError` with the install hint. Tests simulate a missing extra by setting `sys.modules["psimodpy"] = None` and clearing `_links._database`.
 - Loading: `load(source=None, *, refresh=False, cache=False)`, `parse_ptm_list(path)`, `download(dest=None, *, force=False)`
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`

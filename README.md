@@ -38,6 +38,7 @@ uv add uniprotptmpy
 ```
 
 Requires Python 3.12+. No third-party dependencies for the core package.
+`pip install "uniprotptmpy[link]"` adds psimodpy and unimodpy, for `entry.resolve()` and linked-mass fallback in `entry.get_mass()`.
 
 ## Quick Example
 
@@ -63,6 +64,11 @@ print(len(results))           # 17
 for entry, error in db.search_mass(79.966, site="STY")[:3]:
     print(entry.name, round(error, 4))   # Phosphoserine -0.0003 ...
 db.search_mass(42.010565, site="K")    # [(N6-acetyllysine, ~0.0)]
+
+# Links to PSI-MOD and Unimod (resolve() needs: pip install "uniprotptmpy[link]")
+entry = db.get_by_name("Phosphoserine")
+print(entry.psimod_ids, entry.unimod_ids)  # ('MOD:00046',) ('UNIMOD:21',)
+print(entry.resolve("unimod")[0].name)     # Phospho
 
 # Dict-style access, iteration, and formula helpers
 entry = db["PTM-0450"]

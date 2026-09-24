@@ -137,6 +137,24 @@ on a duplicate accession; if two entries share a name, the first keeps it.
 ### Mass search (1.1)
 
 `search_mass(delta, *, tolerance=0.01, unit="da", site=None, position=None) -> list[tuple[entry, float]]`: entries whose `monoisotopic_mass` (mass difference) is within `tolerance` of `delta`, as `(entry, error)` pairs with `error = delta - mass`, closest first (ties in mass, then file order). `unit` accepts only `"da"` (exact, lowercase): ppm is not offered because a ppm window on a delta mass is ill-defined, and the keyword keeps the call shape of `tacular.tolerance` so units can be added later. Both window edges are inclusive. Entries without a mass are skipped. `site` is one or more residue letters (`"S"`, `"STY"`, any case; any of them matches, while `get_by_site` takes exactly one) or `"N-term"`/`"C-term"`, matched against the target residue(s) (`target`; crosslinks list each residue, "Asparagine or Aspartate" is N and D, "Undefined" matches no residue). `position` is where the residue was observed: `"anywhere"`, `"peptide n-term"`, `"peptide c-term"`, `"protein n-term"`, `"protein c-term"` (case-insensitive; `"Any N-term"`/`"Any C-term"` are aliases for the peptide ones); it is matched against the polypeptide position (`position`: Anywhere, N-terminal, C-terminal, with or without Protein core); UniProt does not distinguish protein from peptide terminus for these, so an N-terminal PTM matches both `"peptide n-term"` and `"protein n-term"`. Entries with no usable position count as anywhere. A modification of the terminus itself matches any residue at that terminus. A sorted mass index is built on the first call, and each search is a bisect. A bad `site`, `position`, `unit`, `delta` or `tolerance` raises `UniprotPtmError`.
+`search_mass(delta, *, tolerance=0.01, unit="da", site=None, position=None) -> list[tuple[entry, float]]`: entries whose `get_mass()` (UniProt `monoisotopic_mass`, see `get_mass` for the linked fallback) is within `tolerance` of `delta`, as `(entry, error)` pairs with `error = delta - mass`, closest first (ties in mass, then file order). `unit` is `"da"` or `"ppm"` (ppm of `|delta|`). Entries without a mass are skipped. `site` is one or more residue letters (`"S"`, `"STY"`, any case) or `"N-term"`/`"C-term"`, matched against the target residue(s) (`target`; crosslinks list each residue, "Asparagine or Aspartate" is N and D, "Undefined" matches no residue). `position` is where the residue was observed: `"anywhere"`, `"peptide n-term"`, `"peptide c-term"`, `"protein n-term"`, `"protein c-term"` (case-insensitive; `"Any N-term"`/`"Any C-term"` are aliases for the peptide ones); it is matched against the polypeptide position (`position`: Anywhere, N-terminal, C-terminal, with or without Protein core); UniProt does not distinguish protein from peptide terminus for these, so an N-terminal PTM matches both `"peptide n-term"` and `"protein n-term"`. Entries with no usable position count as anywhere. A modification of the terminus itself matches any residue at that terminus. A sorted mass index is built on the first call, and each search is a bisect. A bad `site`, `position`, `unit`, `delta` or `tolerance` raises `UniprotPtmError` (a `ValueError`).
+
+### Entry mass (1.1)
+
+`PtmEntry.get_mass(*, monoisotopic=True) -> float | None`: the mass difference in Da, `monoisotopic_mass` (default) or `average_mass` (`monoisotopic=False`), with the same keyword as tacular 2.0's `get_mass`. The old attributes stay. `search_mass` uses it. Fallback order: UniProt's own mass; then, only with the `link` extra installed, the first linked PSI-MOD entry that has that mass, then the first linked Unimod entry; else `None`. Without the extra it is exactly the UniProt field.
+
+### Links to PSI-MOD and Unimod (1.1)
+
+`PtmEntry.psimod_ids` / `PtmEntry.unimod_ids`: linked accessions from `cross_references`, normalized to `"MOD:00046"` / `"UNIMOD:21"`, in order and without duplicates (512 entries link to PSI-MOD, 252 to Unimod). They need no extra dependency.
+
+`PtmEntry.resolve("psimod" | "unimod")` returns the linked `psimodpy.PsiModEntry` / `unimodpy.UnimodEntry` objects from each package's bundled data, loaded once per process. It skips ids the linked release lacks. It needs the new optional extra `uniprotptmpy[link]` (`psimodpy>=1.0,<2`, `unimodpy>=1.0,<2`); without the extra it raises `UniprotPtmError` saying to install it, and another target also raises `UniprotPtmError`.
+
+```python
+entry = db.get_by_name("Phosphoserine")
+entry.psimod_ids          # ('MOD:00046',)
+entry.unimod_ids          # ('UNIMOD:21',)
+entry.resolve("unimod")    # (UnimodEntry(id=21, name='Phospho', ...),)  needs uniprotptmpy[link]
+```
 
 There is no mass search method; filter by iterating (see examples).
 
