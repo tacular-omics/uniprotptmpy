@@ -11,7 +11,7 @@ Shared 1.0 API with psimodpy and unimodpy.
 - `get_by_id(True)` / `db[True]` / `True in db` no longer resolve to PTM-0001: `bool` is not an id (`None`, `KeyError`, `False`).
 - `PtmDatabase(...)` raises `UniprotPtmError` on a duplicate accession (was: last one silently won). On a duplicate name the first entry keeps the name (was: last).
 - Parser errors are typed: a non-numeric MM/MA, an `ID` inside an open block or a block with no closing `//` raise `UniprotPtmParseError` (a `ValueError`) with the file line; a duplicate accession raises `UniprotPtmError` with the line. A block missing AC, FT or TG was a bare `KeyError`; it is now skipped with a `UserWarning`, as is a block with an empty name.
-- An unknown feature type (`FT`) no longer aborts the load with `ValueError`: the entry keeps the raw string in `feature_type` (typed `FeatureType | str`) and a warning is issued. An unparseable `CF` is kept raw with a warning; `dict_composition` raises `UniprotPtmParseError` for it (it used to silently skip unknown tokens).
+- An unknown feature type (`FT`) no longer aborts the load with `ValueError`: the entry keeps the raw string in `feature_type` (typed `FeatureType | str`) and a warning is issued. An unparseable `CF` is kept raw with a warning; `dict_composition` and `proforma_formula` are `None` for it (they used to silently skip unknown tokens).
 - `download(dest)` reuses an existing file; pass `force=True` to re-download (was: always overwrote). It writes to a temp file and renames it, so a failed download leaves no truncated file.
 - Server wire model: `PtmEntry` gains `accession` and `references` (DR lines as `{type, accession, value}`, the psimodpy/unimodpy shape); `PtmSummary` gains `accession`. `/api/health` is a typed `HealthResponse`; dashboard rows are `DashboardRow` TypedDicts.
 - Classifier `Development Status :: 5 - Production/Stable`.
@@ -28,13 +28,19 @@ Migration: replace `get_by_id(ac=x)` with `get_by_id(x)`; code that split `profo
 
 - `PtmDatabase.get(key, default=None)`: returns `db[key]` or `default`, never raises, as in psimodpy and unimodpy.
 - `get_by_id`, `db[...]`, `get` and `in` accept an int (`450`) and an unpadded accession (`"450"`, `"PTM-450"`), like psimodpy and unimodpy. Surrounding whitespace is ignored.
-- Tests recompute every entry's MM and MA from its correction formula against a frozen NIST table (pyteomics 5.0.1; generator in `tests/reference/`), plus Hypothesis property tests for the lookups. Upstream data errors found: PTM-0745 to PTM-0773 have MM and MA swapped, PTM-0681's MM does not match its CF, PTM-0741's MM is truncated, PTM-0676 has a CF but no masses.
+- Tests recompute every entry's MM and MA from its correction formula against a frozen NIST table (pyteomics 5.0.1; generator in `tests/reference/`), plus Hypothesis property tests for the lookups. Upstream data errors found: PTM-0745 to PTM-0773 have MM and MA swapped (fixed upstream in 2026_03), PTM-0681's MM does not match its CF, PTM-0741's MM is truncated, PTM-0676 has a CF but no masses.
 
 ### Fixed
 
 - `db.get_by_id(450)` raised `AttributeError`; it now returns PTM-0450. `db[key]` raises `KeyError` for any key that is not an int or str.
 - `PtmDatabase` has `__contains__`: `key in db` accepts the same keys as `db[key]` (`PTM-0450`, bare `0450`, any case, or a name) and returns `False` for anything else instead of scanning entries. `entry in db` still works for entries.
 - The MCP `search` tool rejects an empty `query`, like the REST `/api/search` endpoint; it used to return the first `limit` entries.
+- `PtmDatabase.search(None)` (or any non-str query) returns `[]` instead of raising `AttributeError`, as in psimodpy and unimodpy.
+- An entry with an unparseable `CF` no longer makes `dict_composition`/`proforma_formula` raise, so the server's `to_ptm_entry` (REST/MCP) cannot crash on it; both are `None`.
+
+### Changed
+
+- Bundled data refreshed to UniProt release 2026_03 (750 entries, was 748 from 2026_01): adds PTM-0775 (3'-chlorotyrosine) and PTM-0776 (cholesterol aspartate ester); upstream fixed the swapped MM/MA of PTM-0745 to PTM-0773 and updated PTM-0682 (TR, ChEBI). `data/ptmlist.tsv` regenerated with `write_tsv`.
 
 ## [0.2.2] (2026-09-23)
 

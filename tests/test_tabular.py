@@ -146,3 +146,12 @@ def test_only_databases_present_get_columns(tmp_path) -> None:
     assert "xref_unimod" in header
     assert "xref_resid" not in header
     assert "xref_psi_mod" not in header
+
+
+def test_bundled_tsv_equals_write_tsv_output(db: PtmDatabase, tmp_path) -> None:
+    from importlib.resources import files
+
+    out = tmp_path / "ptm.tsv"
+    write_tsv(db, out)
+    bundled = files("uniprotptmpy").joinpath("data/ptmlist.tsv").read_bytes()
+    assert out.read_bytes() == bundled

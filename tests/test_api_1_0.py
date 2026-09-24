@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import warnings
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -263,14 +264,20 @@ def test_unparseable_formula_raises(cf: str) -> None:
         parse_ptm_formula(cf)
 
 
-def test_unparseable_cf_warns_at_load_and_raises_on_access(tmp_path: Path) -> None:
+def test_unparseable_cf_warns_at_load_and_formulas_are_none(tmp_path: Path) -> None:
     path = _write(tmp_path, _block(cf="C2 H2 ?1"))
     with pytest.warns(UserWarning, match="PTM-0190"):
         db = parse_ptm_list(path)
     entry = db["PTM-0190"]
     assert entry.correction_formula == "C2 H2 ?1"
-    with pytest.raises(UniprotPtmParseError):
-        entry.dict_composition  # noqa: B018
+    assert entry.dict_composition is None
+    assert entry.proforma_formula is None
+
+
+def test_unparseable_cf_on_constructed_entry_is_none() -> None:
+    entry = replace(_entry("PTM-9999", "Synthetic"), correction_formula="C2 X? H1")
+    assert entry.dict_composition is None
+    assert entry.proforma_formula is None
 
 
 def test_bundled_load_emits_no_warnings() -> None:

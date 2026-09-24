@@ -226,3 +226,16 @@ def test_dashboard_rows_are_typed() -> None:
     keys = set(get_type_hints(DashboardRow))
     rows = dashboard_entries()
     assert rows and set(rows[0]) == keys
+
+
+def test_to_ptm_entry_survives_unparseable_cf() -> None:
+    from dataclasses import replace
+
+    from uniprotptmpy import load
+    from uniprotptmpy.server.models import to_ptm_entry
+
+    entry = replace(load()["PTM-0450"], correction_formula="C2 X? H1")
+    wire = to_ptm_entry(entry)
+    assert wire.correction_formula == "C2 X? H1"
+    assert wire.dict_composition is None
+    assert wire.proforma_formula is None

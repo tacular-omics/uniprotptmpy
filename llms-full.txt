@@ -154,18 +154,18 @@ line codes; trailing periods are stripped.
 
 Computed properties:
 
-- `accession -> str`: same as `id` (`"PTM-0253"`), named as in psimodpy and unimodpy.
+- `accession -> str`: same as `id` (`"PTM-0253"`); psimodpy and unimodpy entries have `accession` too.
 - `dict_composition -> dict[str, int] | None`: `correction_formula` parsed to element
   counts, zero counts dropped, isotopes keyed like `"13C"`; `None` when there is no
-  formula. Raises `UniprotPtmParseError` if the CF cannot be parsed.
+  formula or the CF cannot be parsed (`load` warns about such entries).
 - `proforma_formula -> str | None`: the composition as a ProForma formula without
   spaces, C, then H, then other elements alphabetically, count omitted when 1,
-  isotopes bracketed (`"H-3N-1"`, `"HO3P"`, `"[13C6]"`); `None` when there is no formula.
+  isotopes bracketed (`"H-3N-1"`, `"HO3P"`, `"[13C6]"`); `None` when `dict_composition` is.
 
 ### Errors
 
 `UniprotPtmError(Exception)` is the base; `UniprotPtmParseError(UniprotPtmError,
-ValueError)` is raised for malformed `ptmlist.txt` input or correction formulas.
+ValueError)` is raised for malformed `ptmlist.txt` input (and by the internal CF parser).
 
 ### FeatureType
 
@@ -332,7 +332,7 @@ fresh one per request because serverless runtimes send no ASGI lifespan events.
 
 - Lookups return `None` on a miss; only `db[key]` raises `KeyError`.
 - `get_by_name` needs the exact name; use `search` for partial matches. `search("")`
-  returns every entry.
+  returns every entry; a non-str query (`None`) returns `[]`.
 - `search` matches substrings of the target and keywords too: `search("serine")`
   returns every entry whose target is Serine, not only names containing "serine".
 - 177 entries have no correction formula and 178 no monoisotopic mass; check for

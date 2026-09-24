@@ -65,7 +65,9 @@ class PtmDatabase:
         return self._by_name_lower.get(name.lower())
 
     def search(self, query: str) -> list[PtmEntry]:
-        """Free-text substring search across name, ID, target, and keywords."""
+        """Free-text substring search across name, ID, target, and keywords; [] for a non-str query."""
+        if not isinstance(query, str):
+            return []
         q = query.lower()
         return [
             entry

@@ -77,7 +77,7 @@ def _build_entry(fields: dict, start_line: int, path: Path) -> PtmEntry | None:
         try:
             parse_ptm_formula(cf)
         except UniprotPtmParseError as exc:
-            warnings.warn(f"{where}: {exc}; dict_composition will raise for this entry", stacklevel=3)
+            warnings.warn(f"{where}: {exc}; its dict_composition and proforma_formula are None", stacklevel=3)
     return PtmEntry(
         id=ac,
         name=name,

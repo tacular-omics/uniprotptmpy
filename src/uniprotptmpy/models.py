@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from uniprotptmpy._formula import parse_ptm_formula, to_proforma_formula
+from uniprotptmpy.errors import UniprotPtmParseError
 
 
 class FeatureType(StrEnum):
@@ -56,22 +57,25 @@ class PtmEntry:
 
     @property
     def accession(self) -> str:
-        """The accession, e.g. "PTM-0450"; same as ``id`` (named as in psimodpy and unimodpy)."""
+        """The accession, e.g. "PTM-0450"; same as ``id``. psimodpy and unimodpy entries have ``accession`` too."""
         return self.id
 
     @property
     def dict_composition(self) -> dict[str, int] | None:
-        """Correction formula as {element: count} (isotopes keyed like "13C"), or None if no formula.
+        """Correction formula as {element: count} (isotopes keyed like "13C").
 
-        Raises UniprotPtmParseError if the CF cannot be parsed (load() warns about such entries).
+        None if there is no formula or it cannot be parsed (load() warns about such entries).
         """
         if self.correction_formula is None:
             return None
-        return parse_ptm_formula(self.correction_formula)
+        try:
+            return parse_ptm_formula(self.correction_formula)
+        except UniprotPtmParseError:
+            return None
 
     @property
     def proforma_formula(self) -> str | None:
-        """Correction formula as a ProForma Hill-notation string without spaces ("HO3P"), or None."""
+        """Correction formula as a ProForma Hill-notation string ("HO3P"); None when dict_composition is None."""
         comp = self.dict_composition
         if comp is None:
             return None
