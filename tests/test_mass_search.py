@@ -18,8 +18,9 @@ def _mass(entry) -> float | None:
 
 
 def _brute(db: PtmDatabase, delta, tolerance=0.01, unit="da", site=None, position=None):
-    """Linear scan reference: every entry, exact window test, sorted by (|error|, mass, order)."""
-    tol = tolerance if unit == "da" else abs(delta) * tolerance * 1e-6
+    """Linear scan reference: every entry, inclusive window test, sorted by (|error|, mass, order)."""
+    assert unit == "da"
+    tol = tolerance + 1e-9 * max(1.0, abs(delta))  # inclusive edges, same slack as the index
     sq = parse_site(site, UniprotPtmError) if site is not None else None
     pq = parse_position(position, UniprotPtmError) if position is not None else None
     hits = []
@@ -59,14 +60,21 @@ def test_oxidation_on_m(db: PtmDatabase) -> None:
     assert all(abs(err) <= 0.01 for _, err in hits)
 
 
-def test_ppm_vs_da(db: PtmDatabase) -> None:
-    # Sulfo (79.956815) is 9.5 mDa (119 ppm) from phospho: inside 0.01 Da, outside 5 ppm.
-    da = _names(db.search_mass(79.966331, tolerance=0.01, site="S"))
-    ppm = _names(db.search_mass(79.966331, tolerance=5, unit="PPM", site="S"))
-    assert "Sulfoserine" in da
-    assert "Sulfoserine" not in ppm
-    assert set(ppm) < set(da)
-    assert ppm[0] == ["Phosphoserine", "Phosphothreonine", "Phosphotyrosine"][0]
+def test_tighter_window_drops_sulfo(db: PtmDatabase) -> None:
+    # Sulfo (79.956815) is 9.5 mDa from phospho: inside 0.01 Da, outside 0.005 Da.
+    wide = _names(db.search_mass(79.966331, tolerance=0.01))
+    tight = _names(db.search_mass(79.966331, tolerance=0.005))
+    assert "Sulfoserine" in wide
+    assert "Sulfoserine" not in tight
+    assert "Phosphoserine" in tight
+    assert set(tight) < set(wide)
+
+
+def test_window_edges_are_inclusive(db: PtmDatabase) -> None:
+    # 79.976331 - 79.966331 is 0.010000000000005 in floats: still inside tolerance=0.01.
+    assert "Phosphoserine" in _names(db.search_mass(79.976331, tolerance=0.01))
+    assert "Phosphoserine" in _names(db.search_mass(79.956331, tolerance=0.01))
+    assert "Phosphoserine" not in _names(db.search_mass(79.976332, tolerance=0.01))
 
 
 def test_n_terminal_acetyl_position(db: PtmDatabase) -> None:
@@ -101,7 +109,7 @@ def test_zero_tolerance_is_exact(db: PtmDatabase) -> None:
     target = next(e for e in db if _mass(e) is not None and _mass(e) > 1)
     hits = db.search_mass(_mass(target), tolerance=0)
     assert target in [e for e, _ in hits]
-    assert all(err == 0 for _, err in hits)
+    assert all(abs(err) <= 1e-9 * max(1.0, abs(_mass(target))) for _, err in hits)
     assert db.search_mass(_mass(target) + 1e-6, tolerance=0) == []
 
 
@@ -141,7 +149,7 @@ def test_unknown_position_raises(db: PtmDatabase, position: object) -> None:
         db.search_mass(79.966, position=position)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("unit", ["mda", "", None, "ppm "[:2]])
+@pytest.mark.parametrize("unit", ["ppm", "PPM", "Da", "DA", " da", "da ", "mda", "", None, 1])
 def test_unknown_unit_raises(db: PtmDatabase, unit: object) -> None:
     with pytest.raises(UniprotPtmError, match="unit"):
         db.search_mass(79.966, unit=unit)  # type: ignore[arg-type]
@@ -159,9 +167,10 @@ def test_bad_tolerance_raises(db: PtmDatabase, tolerance: object) -> None:
         db.search_mass(79.966, tolerance=tolerance)  # type: ignore[arg-type]
 
 
-def test_errors_are_value_errors(db: PtmDatabase) -> None:
-    with pytest.raises(ValueError):
+def test_errors_are_the_package_error(db: PtmDatabase) -> None:
+    with pytest.raises(UniprotPtmError) as info:
         db.search_mass(79.966, site="B")
+    assert type(info.value) is UniprotPtmError
 
 
 # ---------------------------------------------------------------- property: index == brute force
@@ -185,17 +194,15 @@ def test_matches_brute_force_da(db: PtmDatabase, delta, tolerance, site, positio
 @given(
     entry_index=st.integers(min_value=0, max_value=10_000),
     offset=st.floats(min_value=-0.05, max_value=0.05, allow_nan=False),
-    tolerance=st.floats(min_value=0, max_value=200, allow_nan=False),
+    tolerance=st.floats(min_value=0, max_value=0.05, allow_nan=False),
     site=_sites,
     position=_positions,
 )
-def test_matches_brute_force_ppm_near_real_masses(
-    db: PtmDatabase, entry_index, offset, tolerance, site, position
-) -> None:
+def test_matches_brute_force_near_real_masses(db: PtmDatabase, entry_index, offset, tolerance, site, position) -> None:
     masses = [_mass(e) for e in db if _mass(e) is not None]
     delta = masses[entry_index % len(masses)] + offset
-    got = db.search_mass(delta, tolerance=tolerance, unit="ppm", site=site, position=position)
-    assert got == _brute(db, delta, tolerance, "ppm", site, position)
+    got = db.search_mass(delta, tolerance=tolerance, site=site, position=position)
+    assert got == _brute(db, delta, tolerance, "da", site, position)
 
 
 # ---------------------------------------------------------------- get_by_site

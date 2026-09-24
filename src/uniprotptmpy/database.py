@@ -172,10 +172,15 @@ class PtmDatabase:
 
         Args:
             delta: Observed monoisotopic mass shift in Da; may be negative.
-            tolerance: Window half-width, inclusive; ``0`` means an exact match.
-            unit: ``"da"`` (default) or ``"ppm"`` (parts per million of ``abs(delta)``).
+            tolerance: Window half-width in Da; both edges are inclusive (with a 1e-9 relative
+                slack for float rounding), and ``0`` means an exact match.
+            unit: Only ``"da"`` (the default), exact and lowercase; anything else raises.
+                ppm is not offered: a ppm window on a delta mass is ill-defined (relative
+                to the delta, or to the modified peptide's mass?). The keyword is kept so
+                the call matches ``tacular.tolerance``; other units may be added later.
             site: Residue letter(s) the modification sits on, e.g. ``"S"`` or ``"STY"``
                 (any of them), or ``"N-term"`` / ``"C-term"`` for a terminus modification.
+                Several letters mean any of them (``get_by_site`` takes exactly one residue).
                 Matched against the residues of ``target`` (each residue of a crosslink;
                 "Asparagine or Aspartate" is N and D). UniProt has no terminus-only entries,
                 so ``"N-term"`` finds none.
@@ -201,6 +206,7 @@ class PtmDatabase:
 
         Like psimodpy's ``get_by_origin``; crosslinks appear under each of their residues.
         An unknown site or a non-string returns ``[]``.
+        Takes exactly one residue; ``search_mass(site=...)`` takes several letters (any of them).
         """
         if not isinstance(site, str):
             return []
