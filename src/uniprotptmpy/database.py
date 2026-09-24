@@ -23,12 +23,24 @@ class PtmDatabase:
             self._by_id[entry.id] = entry
             self._by_name_lower[entry.name.lower()] = entry
 
-    def get_by_id(self, ac: str) -> PtmEntry | None:
-        """Look up by accession (e.g. 'PTM-0450' or bare '0450')."""
-        normalized = ac.upper()
+    def get_by_id(self, ac: int | str) -> PtmEntry | None:
+        """Look up by accession: 'PTM-0450', bare '0450', unpadded '450' or 'PTM-450', or 450.
+
+        The prefix is case-insensitive and surrounding whitespace is ignored. Returns
+        None for an unknown accession or a key that is not an int or str.
+        """
+        if isinstance(ac, int):
+            return self._by_id.get(f"PTM-{ac:04d}") if ac >= 0 else None
+        if not isinstance(ac, str):
+            return None
+        normalized = ac.strip().upper()
         if not normalized.startswith("PTM-"):
             normalized = f"PTM-{normalized}"
-        return self._by_id.get(normalized)
+        entry = self._by_id.get(normalized)
+        digits = normalized.removeprefix("PTM-")
+        if entry is None and digits.isascii() and digits.isdigit():
+            entry = self._by_id.get(f"PTM-{int(digits):04d}")
+        return entry
 
     def get_by_name(self, name: str) -> PtmEntry | None:
         """Case-insensitive exact match on the PTM name."""
@@ -46,8 +58,21 @@ class PtmDatabase:
             or any(q in kw.lower() for kw in entry.keywords)
         ]
 
-    def __getitem__(self, key: str) -> PtmEntry:
-        entry = self.get_by_id(key) or self.get_by_name(key)
+    def get(self, key: object, default: PtmEntry | None = None) -> PtmEntry | None:
+        """Return ``db[key]``, or ``default`` if it would raise. Never raises."""
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __getitem__(self, key: object) -> PtmEntry:
+        """Return the entry by accession (see ``get_by_id``) or, failing that, by name
+        (case-insensitive). Raise KeyError for a missing or non-int/str key."""
+        entry = None
+        if isinstance(key, int | str):
+            entry = self.get_by_id(key)
+            if entry is None and isinstance(key, str):
+                entry = self.get_by_name(key)
         if entry is None:
             raise KeyError(key)
         return entry
@@ -56,9 +81,7 @@ class PtmDatabase:
         """True if ``db[key]`` would succeed; also accepts a ``PtmEntry`` from this database."""
         if isinstance(key, PtmEntry):
             return self._by_id.get(key.id) == key
-        if not isinstance(key, str):
-            return False
-        return (self.get_by_id(key) or self.get_by_name(key)) is not None
+        return self.get(key) is not None
 
     def __iter__(self) -> Iterator[PtmEntry]:
         return iter(self._entries)
