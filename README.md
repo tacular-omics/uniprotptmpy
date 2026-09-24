@@ -123,13 +123,14 @@ claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 
 | Symbol | Description |
 |--------|-------------|
-| `load(source=None)` | Load the PTM database. Uses bundled data by default. |
-| `download(dest=None)` | Download the latest ptmlist.txt from UniProt FTP. |
+| `load(source=None, *, refresh=False)` | Load the PTM database. Uses bundled data by default; `refresh=True` downloads the current release first. |
+| `download(dest=None, *, force=False)` | Download the latest ptmlist.txt from UniProt FTP (reuses an existing file unless `force=True`). |
 | `parse_ptm_list(path)` | Parse a ptmlist.txt file into a `PtmDatabase`. |
 | `write_tsv(entries, path, *, delimiter)` | Write entries to a TSV (or CSV) file. |
 | `write_ptmlist(entries, path)` | Write entries back to UniProt ptmlist.txt flat-file format. |
 | `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
-| `PtmEntry` | Frozen dataclass with all PTM fields, plus `dict_composition` and `proforma_formula` properties. |
+| `PtmEntry` | Frozen dataclass with all PTM fields, plus `accession`, `dict_composition` and `proforma_formula` (`"HO3P"`) properties. |
+| `UniprotPtmError`, `UniprotPtmParseError` | Package exceptions; the parse error is also a `ValueError`. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
 | `TaxonomicRange` | Frozen dataclass with `taxon_name`, `tax_id`, `description`, and `raw` fields. |

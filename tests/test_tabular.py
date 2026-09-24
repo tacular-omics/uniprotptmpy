@@ -48,7 +48,7 @@ def test_full_entry_row(db: PtmDatabase, tmp_path) -> None:
     assert row["feature_type"] == "CROSSLNK"
     assert row["target"] == "Asparagine-Glycine"
     assert row["correction_formula"] == "H-3 N-1"
-    assert row["proforma_formula"] == "H-3 N-1"
+    assert row["proforma_formula"] == "H-3N-1"
     assert float(row["monoisotopic_mass"]) == -17.026549
     assert float(row["average_mass"]) == -17.03
 

@@ -26,7 +26,7 @@ A hosted REST + MCP server runs at https://uniprot.tacular.dev (MCP endpoint
 
 ## API
 
-- [Public API source](https://github.com/tacular-omics/uniprotptmpy/blob/main/src/uniprotptmpy/__init__.py): `load`, `parse_ptm_list`, `download`, `write_tsv`, `write_ptmlist`, `PtmDatabase`, `PtmEntry`, `FeatureType`, `CrossReference`, `TaxonomicRange`
+- [Public API source](https://github.com/tacular-omics/uniprotptmpy/blob/main/src/uniprotptmpy/__init__.py): `load`, `parse_ptm_list`, `download`, `write_tsv`, `write_ptmlist`, `PtmDatabase`, `PtmEntry`, `FeatureType`, `CrossReference`, `TaxonomicRange`, `UniprotPtmError`, `UniprotPtmParseError`
 - [Server source](https://github.com/tacular-omics/uniprotptmpy/blob/main/src/uniprotptmpy/server/app.py): FastAPI routes and MCP tools
 - [Hosted OpenAPI docs](https://uniprot.tacular.dev/docs): interactive REST reference
 - [PTM browser](https://tacular-omics.github.io/uniprotptmpy/): search every entry in the browser

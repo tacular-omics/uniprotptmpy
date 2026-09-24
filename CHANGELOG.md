@@ -2,7 +2,29 @@
 
 ## [Unreleased]
 
+Shared 1.0 API with psimodpy and unimodpy.
+
+### Breaking
+
+- `PtmEntry.proforma_formula` has no spaces: `"HO3P"`, `"H-3N-1"` (was `"H O3 P"`, `"H-3 N-1"`; 487 of 748 entries). Isotopes are bracketed (`"[13C6]"`). The bundled `data/ptmlist.tsv` and `write_tsv` output change with it.
+- `PtmDatabase.get_by_id(ac)` parameter renamed to `id`; `get_by_id(ac=...)` still works with a `DeprecationWarning`.
+- `get_by_id(True)` / `db[True]` / `True in db` no longer resolve to PTM-0001: `bool` is not an id (`None`, `KeyError`, `False`).
+- `PtmDatabase(...)` raises `UniprotPtmError` on a duplicate accession (was: last one silently won). On a duplicate name the first entry keeps the name (was: last).
+- Parser errors are typed: a block missing FT or TG, a non-numeric MM/MA, an `ID` inside an open block or a block with no closing `//` raise `UniprotPtmParseError` (a `ValueError`) with the file line. A block missing AC was a bare `KeyError`; it is now skipped with a warning, as is a block with an empty name.
+- An unknown feature type (`FT`) no longer aborts the load with `ValueError`: the entry keeps the raw string in `feature_type` (typed `FeatureType | str`) and a warning is issued. An unparseable `CF` is kept raw with a warning; `dict_composition` raises `UniprotPtmParseError` for it (it used to silently skip unknown tokens).
+- `download(dest)` reuses an existing file; pass `force=True` to re-download (was: always overwrote).
+- Server wire model: `PtmEntry` gains `accession` and `references` (DR lines as `{type, accession, value}`, the psimodpy/unimodpy shape); `PtmSummary` gains `accession`. `/api/health` is a typed `HealthResponse`.
+- Classifier `Development Status :: 5 - Production/Stable`.
+
+Migration: replace `get_by_id(ac=x)` with `get_by_id(x)`; code that split `proforma_formula` on spaces should use `dict_composition`; catch `UniprotPtmParseError` (or `ValueError`) around `parse_ptm_list`/`load(path)`; handle `feature_type` possibly being a plain `str` (`str(e.feature_type)` works for both); call `download(force=True)` or `load(refresh=True)` to refresh the cache.
+
 ### Added
+
+- `uniprotptmpy.errors`: `UniprotPtmError` and `UniprotPtmParseError(UniprotPtmError, ValueError)`, exported from the package.
+- `load(source=None, *, refresh=False)`: `refresh=True` downloads the current release (`download(force=True)`) and parses it.
+- `download(dest=None, *, force=False)`.
+- `PtmEntry.accession`, equal to `id` (`"PTM-0450"`), as in psimodpy and unimodpy.
+- Correction formulas with isotopes (`13C6`, `[13C]6`, `[13C6]`) parse to keys like `"13C"`.
 
 - `PtmDatabase.get(key, default=None)`: returns `db[key]` or `default`, never raises, as in psimodpy and unimodpy.
 - `get_by_id`, `db[...]`, `get` and `in` accept an int (`450`) and an unpadded accession (`"450"`, `"PTM-450"`), like psimodpy and unimodpy. Surrounding whitespace is ignored.

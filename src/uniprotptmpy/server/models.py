@@ -19,6 +19,14 @@ class CrossReference(BaseModel):
     accession: str
 
 
+class Reference(BaseModel):
+    """A database reference from a DR line, shaped like psimodpy/unimodpy ``Reference``."""
+
+    type: str
+    accession: str | None = None
+    value: str | None = None
+
+
 class TaxonomicRange(BaseModel):
     taxon_name: str
     tax_id: int | None
@@ -30,6 +38,7 @@ class PtmEntry(BaseModel):
     """Full UniProt PTM entry."""
 
     id: str
+    accession: str
     name: str
     feature_type: str
     target: str
@@ -44,16 +53,27 @@ class PtmEntry(BaseModel):
     dict_composition: dict[str, int] | None
     taxonomic_ranges: list[TaxonomicRange]
     cross_references: list[CrossReference]
+    references: list[Reference] = Field(
+        description="The DR cross-references as {type, accession}, the shape psimodpy and unimodpy use.",
+    )
 
 
 class PtmSummary(BaseModel):
     """Compact entry shape returned by ``search`` and similar list endpoints."""
 
     id: str
+    accession: str
     name: str
     feature_type: str
     target: str
     monoisotopic_mass: float | None
+
+
+class HealthResponse(BaseModel):
+    ok: bool
+    package: str
+    version: str
+    count: int
 
 
 class EntryListResponse(BaseModel):
@@ -81,6 +101,10 @@ def _xref(x: _CrossReference) -> CrossReference:
     return CrossReference(database=x.database, accession=x.accession)
 
 
+def _reference(x: _CrossReference) -> Reference:
+    return Reference(type=x.database, accession=x.accession or None)
+
+
 def _taxonomic_range(t: _TaxonomicRange) -> TaxonomicRange:
     return TaxonomicRange(
         taxon_name=t.taxon_name,
@@ -93,6 +117,7 @@ def _taxonomic_range(t: _TaxonomicRange) -> TaxonomicRange:
 def to_ptm_entry(entry: _PtmEntry) -> PtmEntry:
     return PtmEntry(
         id=entry.id,
+        accession=entry.accession,
         name=entry.name,
         feature_type=str(entry.feature_type),
         target=entry.target,
@@ -107,12 +132,14 @@ def to_ptm_entry(entry: _PtmEntry) -> PtmEntry:
         dict_composition=entry.dict_composition,
         taxonomic_ranges=[_taxonomic_range(t) for t in entry.taxonomic_ranges],
         cross_references=[_xref(x) for x in entry.cross_references],
+        references=[_reference(x) for x in entry.cross_references],
     )
 
 
 def to_ptm_summary(entry: _PtmEntry) -> PtmSummary:
     return PtmSummary(
         id=entry.id,
+        accession=entry.accession,
         name=entry.name,
         feature_type=str(entry.feature_type),
         target=entry.target,
