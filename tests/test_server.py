@@ -216,3 +216,13 @@ def test_rest_entry_has_accession_and_references() -> None:
 @pytest.mark.parametrize("bad", ["foo", "PTM-", "true"])
 def test_rest_unparseable_id_is_404(bad: str) -> None:
     assert TestClient(app).get(f"/api/entries/{bad}").status_code == 404
+
+
+def test_dashboard_rows_are_typed() -> None:
+    from typing import get_type_hints
+
+    from uniprotptmpy.server.dashboard import DashboardRow, dashboard_entries
+
+    keys = set(get_type_hints(DashboardRow))
+    rows = dashboard_entries()
+    assert rows and set(rows[0]) == keys

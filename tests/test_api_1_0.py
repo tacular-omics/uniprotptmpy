@@ -97,9 +97,17 @@ def test_block_missing_id_or_name_is_skipped_with_warning(tmp_path: Path, drop: 
     assert [e.id for e in db] == ["PTM-0190"]
 
 
-def test_block_missing_target_raises_parse_error(tmp_path: Path) -> None:
-    path = _write(tmp_path, _block().replace("TG   Lysine.\n", ""))
-    with pytest.raises(UniprotPtmParseError, match="PTM-0190"):
+@pytest.mark.parametrize("line", ["TG   Lysine.\n", "FT   MOD_RES\n"])
+def test_block_missing_required_key_is_skipped_with_warning(tmp_path: Path, line: str) -> None:
+    path = _write(tmp_path, _block(name="Bad", ac="PTM-0001").replace(line, ""), _block())
+    with pytest.warns(UserWarning, match=r"PTM-0001.*skipp"):
+        db = parse_ptm_list(path)
+    assert [e.id for e in db] == ["PTM-0190"]
+
+
+def test_duplicate_id_in_file_raises_with_line(tmp_path: Path) -> None:
+    path = _write(tmp_path, _block(), _block(name="Other"))
+    with pytest.raises(UniprotPtmError, match=r"line \d+.*PTM-0190"):
         parse_ptm_list(path)
 
 
@@ -175,6 +183,21 @@ def test_download_skips_existing_unless_forced(tmp_path: Path) -> None:
         mock.assert_not_called()
         download(dest, force=True)
         mock.assert_called_once()
+
+
+def test_failed_download_leaves_no_partial_file(tmp_path: Path) -> None:
+    dest = tmp_path / "ptmlist.txt"
+
+    def broken(url: str, target: str) -> None:
+        Path(target).write_text("trunc", encoding="utf-8")
+        raise OSError("connection reset")
+
+    with (
+        patch("uniprotptmpy._download.urllib.request.urlretrieve", side_effect=broken),
+        pytest.raises(OSError),
+    ):
+        download(dest)
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_load_refresh_downloads_and_parses(tmp_path: Path) -> None:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -19,5 +21,12 @@ def download(dest: Path | str | None = None, *, force: bool = False) -> Path:
     if dest.exists() and not force:
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
-    urllib.request.urlretrieve(PTM_LIST_URL, dest)
+    # Download next to dest, then rename: a failed download never leaves a truncated cache file.
+    fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f".{dest.name}.", suffix=".part")
+    os.close(fd)
+    try:
+        urllib.request.urlretrieve(PTM_LIST_URL, tmp_name)
+        os.replace(tmp_name, dest)
+    finally:
+        Path(tmp_name).unlink(missing_ok=True)
     return dest

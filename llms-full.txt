@@ -77,17 +77,19 @@ with `source` (`ValueError`).
 parse_ptm_list(path: Path | str) -> PtmDatabase
 ```
 Parse a UniProt `ptmlist.txt` file. The file header is skipped; each `ID ... //` block
-becomes one `PtmEntry`. A malformed block (missing FT or TG, non-numeric MM/MA, no
-closing `//`) raises `UniprotPtmParseError` with the file line; a duplicate accession
-raises `UniprotPtmError`. A block without an AC or name is skipped, an unknown FT is
-kept as a plain string, and an unparseable CF is kept raw; each of these warns.
+becomes one `PtmEntry`. A malformed value (non-numeric MM/MA, no closing `//`) raises
+`UniprotPtmParseError` with the file line; a duplicate accession raises
+`UniprotPtmError` with the line. A block without an AC, ID, FT or TG is skipped, an
+unknown FT is kept as a plain string, and an unparseable CF is kept raw; each of these
+warns (`UserWarning`).
 
 ```python
 download(dest: Path | str | None = None, *, force: bool = False) -> Path
 ```
 Download the current `ptmlist.txt` from the UniProt FTP site (`urllib`, no retries)
 to `dest`, default `~/.cache/uniprotptmpy/ptmlist.txt`. Creates parent directories.
-An existing file is reused unless `force=True`. Returns the path. Does not parse it: pass the result to `load()`.
+An existing file is reused unless `force=True`. Downloads to a temp file next to
+`dest` and renames it, so a failed download leaves no partial file. Returns the path. Does not parse it: pass the result to `load()`.
 
 ### Writing
 

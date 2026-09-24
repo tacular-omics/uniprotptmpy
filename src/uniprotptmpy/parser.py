@@ -10,7 +10,7 @@ from pathlib import Path
 from uniprotptmpy._download import download
 from uniprotptmpy._formula import parse_ptm_formula
 from uniprotptmpy.database import PtmDatabase
-from uniprotptmpy.errors import UniprotPtmParseError
+from uniprotptmpy.errors import UniprotPtmError, UniprotPtmParseError
 from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, TaxonomicRange
 
 _MULTI_VALUE = {"TR", "KW", "DR"}
@@ -63,16 +63,15 @@ def _float(fields: dict, code: str, where: str) -> float | None:
 
 
 def _build_entry(fields: dict, start_line: int, path: Path) -> PtmEntry | None:
-    """Build one entry; None (with a warning) if the block has no AC or name."""
+    """Build one entry; None (with a warning) if the block lacks AC, ID, FT or TG."""
     ac = fields.get("AC", "").strip()
     name = fields.get("ID", "").strip()
     where = f"{path.name} line {start_line} ({ac or name or 'entry'})"
-    if not ac or not name:
-        warnings.warn(f"{where}: block without {'AC' if not ac else 'ID'} skipped", stacklevel=3)
+    missing = [code for code, value in (("AC", ac), ("ID", name)) if not value]
+    missing += [code for code in ("FT", "TG") if not fields.get(code, "").strip()]
+    if missing:
+        warnings.warn(f"{where}: block without {'/'.join(missing)} skipped", stacklevel=3)
         return None
-    for code in ("FT", "TG"):
-        if not fields.get(code, "").strip():
-            raise UniprotPtmParseError(f"{where}: missing required {code} line")
     cf = fields.get("CF")
     if cf is not None:
         try:
@@ -99,15 +98,16 @@ def _build_entry(fields: dict, start_line: int, path: Path) -> PtmEntry | None:
 def parse_ptm_list(path: Path | str) -> PtmDatabase:
     """Parse a ptmlist.txt file into a PtmDatabase.
 
-    Raises UniprotPtmParseError for a malformed block (missing FT/TG, non-numeric MM/MA,
-    no closing ``//``) and UniprotPtmError for a duplicate accession. A block without an
-    AC or name is skipped, and an unknown FT is kept as a plain string; both warn.
+    Raises UniprotPtmParseError for a malformed value (non-numeric MM/MA, no closing ``//``)
+    and UniprotPtmError for a duplicate accession, naming the file line. A block without an
+    AC, ID, FT or TG is skipped, and an unknown FT is kept as a plain string; both warn.
     """
     path = Path(path)
     entries: list[PtmEntry] = []
     in_entry = False
     start_line = 0
     current_fields: dict = {}
+    seen: dict[str, int] = {}
 
     with path.open(encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, start=1):
@@ -128,6 +128,12 @@ def parse_ptm_list(path: Path | str) -> PtmDatabase:
             elif code == "//" and in_entry:
                 entry = _build_entry(current_fields, start_line, path)
                 if entry is not None:
+                    if entry.id in seen:
+                        raise UniprotPtmError(
+                            f"{path.name} line {start_line}: duplicate accession {entry.id!r} "
+                            f"(first at line {seen[entry.id]})"
+                        )
+                    seen[entry.id] = start_line
                     entries.append(entry)
                 in_entry = False
                 current_fields = {}

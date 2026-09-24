@@ -10,10 +10,10 @@ Shared 1.0 API with psimodpy and unimodpy.
 - `PtmDatabase.get_by_id(ac)` parameter renamed to `id`; `get_by_id(ac=...)` still works with a `DeprecationWarning`.
 - `get_by_id(True)` / `db[True]` / `True in db` no longer resolve to PTM-0001: `bool` is not an id (`None`, `KeyError`, `False`).
 - `PtmDatabase(...)` raises `UniprotPtmError` on a duplicate accession (was: last one silently won). On a duplicate name the first entry keeps the name (was: last).
-- Parser errors are typed: a block missing FT or TG, a non-numeric MM/MA, an `ID` inside an open block or a block with no closing `//` raise `UniprotPtmParseError` (a `ValueError`) with the file line. A block missing AC was a bare `KeyError`; it is now skipped with a warning, as is a block with an empty name.
+- Parser errors are typed: a non-numeric MM/MA, an `ID` inside an open block or a block with no closing `//` raise `UniprotPtmParseError` (a `ValueError`) with the file line; a duplicate accession raises `UniprotPtmError` with the line. A block missing AC, FT or TG was a bare `KeyError`; it is now skipped with a `UserWarning`, as is a block with an empty name.
 - An unknown feature type (`FT`) no longer aborts the load with `ValueError`: the entry keeps the raw string in `feature_type` (typed `FeatureType | str`) and a warning is issued. An unparseable `CF` is kept raw with a warning; `dict_composition` raises `UniprotPtmParseError` for it (it used to silently skip unknown tokens).
-- `download(dest)` reuses an existing file; pass `force=True` to re-download (was: always overwrote).
-- Server wire model: `PtmEntry` gains `accession` and `references` (DR lines as `{type, accession, value}`, the psimodpy/unimodpy shape); `PtmSummary` gains `accession`. `/api/health` is a typed `HealthResponse`.
+- `download(dest)` reuses an existing file; pass `force=True` to re-download (was: always overwrote). It writes to a temp file and renames it, so a failed download leaves no truncated file.
+- Server wire model: `PtmEntry` gains `accession` and `references` (DR lines as `{type, accession, value}`, the psimodpy/unimodpy shape); `PtmSummary` gains `accession`. `/api/health` is a typed `HealthResponse`; dashboard rows are `DashboardRow` TypedDicts.
 - Classifier `Development Status :: 5 - Production/Stable`.
 
 Migration: replace `get_by_id(ac=x)` with `get_by_id(x)`; code that split `proforma_formula` on spaces should use `dict_composition`; catch `UniprotPtmParseError` (or `ValueError`) around `parse_ptm_list`/`load(path)`; handle `feature_type` possibly being a plain `str` (`str(e.feature_type)` works for both); call `download(force=True)` or `load(refresh=True)` to refresh the cache.
