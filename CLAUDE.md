@@ -107,6 +107,7 @@ without entering `TestClient` as a context manager to mimic Vercel.
 
 From `uniprotptmpy/__init__.py` (`__all__`):
 
+- Mass search (1.1): `db.search_mass(delta, *, tolerance=0.01, unit="da", site=None, position=None)` over `monoisotopic_mass`, returns `(entry, delta - mass)` closest first; `db.get_by_site(site)`. The index and site/position rules live in `_mass.py`, identical in psimodpy, unimodpy and uniprotptmpy: keep the three copies in sync.
 - Loading: `load(source=None, *, refresh=False, cache=False)`, `parse_ptm_list(path)`, `download(dest=None, *, force=False)`
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`

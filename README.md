@@ -59,6 +59,11 @@ print(entry.id)               # PTM-0253
 results = db.search("acetylation")
 print(len(results))           # 17
 
+# Entries whose monoisotopic mass is within 0.01 Da of 79.966, on S, T or Y
+for entry, error in db.search_mass(79.966, site="STY")[:3]:
+    print(entry.name, round(error, 4))   # Phosphoserine -0.0003 ...
+db.search_mass(42.010565, site="K")    # [(N6-acetyllysine, ~0.0)]
+
 # Dict-style access, iteration, and formula helpers
 entry = db["PTM-0450"]
 hydroxy = db.get_by_id("PTM-0476")
