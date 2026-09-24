@@ -155,8 +155,9 @@ def test_get_mass_fallback_on_real_data(db: PtmDatabase) -> None:
     filled = [e for e in db if e.monoisotopic_mass is None and e.get_mass() is not None]
     assert len(filled) == 49
     for e in filled:
-        linked = [*e.resolve("psimod"), *e.resolve("unimod")]
-        assert e.get_mass() in [m.get_mass() for m in linked]
+        # Fields, not get_mass(): the link extra allows psimodpy/unimodpy 1.0.
+        linked = [m.diff_mono for m in e.resolve("psimod")] + [m.delta_mono_mass for m in e.resolve("unimod")]
+        assert e.get_mass() in linked
 
 
 def test_get_mass_without_extra_is_the_uniprot_field(db: PtmDatabase, no_extra: None) -> None:
