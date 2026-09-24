@@ -162,10 +162,10 @@ def load(source: Path | str | None = None, *, refresh: bool = False, cache: bool
     (``download(force=True)``) and parses that instead; it cannot be combined with ``source``.
 
     ``cache=True`` parses the bundled file only once per process and returns that same
-    database object on every later ``load(cache=True)`` call. The shared object is
-    read-only in practice (entries are frozen and it has no mutating methods). It cannot
-    be combined with ``source`` or ``refresh`` (``ValueError``). Default False: a new
-    database each call.
+    database object on every later ``load(cache=True)`` call. The returned database is
+    shared by every ``load(cache=True)`` caller in the process: do not modify it (or its
+    attributes); a change is seen by every later caller. It cannot be combined with
+    ``source`` or ``refresh`` (``ValueError``). Default False: a new database each call.
     """
     if cache:
         if source is not None or refresh:

@@ -111,7 +111,7 @@ From `uniprotptmpy/__init__.py` (`__all__`):
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`
   (id, then name, else `UniprotPtmKeyError`, a `KeyError`), `__contains__` (same keys, or a `PtmEntry`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
-- Errors: `UniprotPtmError` (a `ValueError`), `UniprotPtmParseError`, `UniprotPtmKeyError` (also a `KeyError`), in `errors.py`
+- Errors: `UniprotPtmError`, `UniprotPtmParseError` (also a `ValueError`), `UniprotPtmKeyError` (also a `KeyError`), in `errors.py`
 - Models: `PtmEntry` (plus computed `accession`, `dict_composition`, `proforma_formula` like `"HO3P"`),
   `CrossReference`, `TaxonomicRange`, `FeatureType`
 - `__version__`

@@ -130,7 +130,7 @@ claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 | `write_ptmlist(entries, path)` | Write entries back to UniProt ptmlist.txt flat-file format. |
 | `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
 | `PtmEntry` | Frozen dataclass with all PTM fields, plus `accession`, `dict_composition` and `proforma_formula` (`"HO3P"`) properties. |
-| `UniprotPtmError`, `UniprotPtmParseError`, `UniprotPtmKeyError` | Package exceptions; all are `ValueError`s, and `UniprotPtmKeyError` (raised by `db[key]` on a miss) is also a `KeyError`. |
+| `UniprotPtmError`, `UniprotPtmParseError`, `UniprotPtmKeyError` | Package exceptions; the parse error is also a `ValueError`, and `UniprotPtmKeyError` (raised by `db[key]` on a miss) is also a `KeyError`. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
 | `TaxonomicRange` | Frozen dataclass with `taxon_name`, `tax_id`, `description`, and `raw` fields. |

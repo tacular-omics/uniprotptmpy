@@ -167,7 +167,7 @@ Computed properties:
 
 ### Errors
 
-`UniprotPtmError(ValueError)` is the base (a `ValueError` since 1.1);
+`UniprotPtmError(Exception)` is the base;
 `UniprotPtmParseError(UniprotPtmError, ValueError)` is raised for malformed `ptmlist.txt`
 input (and by the internal CF parser); `UniprotPtmKeyError(UniprotPtmError, KeyError)` is
 raised by `db[key]` on a miss, so both `except KeyError` and `except UniprotPtmError`
