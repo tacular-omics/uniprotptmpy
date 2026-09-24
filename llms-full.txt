@@ -66,12 +66,15 @@ Everything below is importable from the top-level package (`uniprotptmpy.__all__
 ### Loading
 
 ```python
-load(source: Path | str | None = None, *, refresh: bool = False) -> PtmDatabase
+load(source: Path | str | None = None, *, refresh: bool = False, cache: bool = False) -> PtmDatabase
 ```
 Load the database. With no argument, parses the bundled `data/ptmlist.txt`; with a
 path, parses that file (same as `parse_ptm_list`). `refresh=True` downloads the current
 release to the cache (`download(force=True)`) and parses it; it cannot be combined
-with `source` (`ValueError`).
+with `source` (`ValueError`). `cache=True` (1.1) parses the bundled file once per
+process and returns that same database on every later `load(cache=True)` call; treat it
+as read-only (entries are frozen). `cache=True` with `source` or `refresh=True` raises
+`ValueError`. Without it every `load()` parses anew.
 
 ```python
 parse_ptm_list(path: Path | str) -> PtmDatabase
@@ -123,7 +126,7 @@ on a duplicate accession; if two entries share a name, the first keeps it.
 | `get_by_id(id: int \| str) -> PtmEntry \| None` | accession lookup: `"PTM-0450"`, `"ptm-0450"`, `"0450"`, `"450"` or `450`; `None` on a miss or an invalid key (`"foo"`, `""`, `True`). `ac=` is a deprecated alias |
 | `get_by_name(name: str) -> PtmEntry \| None` | case-insensitive exact name match (no whitespace trimming); first entry wins on a shared name |
 | `search(query: str) -> list[PtmEntry]` | case-insensitive substring over name, id, target and keywords, in file order |
-| `db[key]` | `get_by_id(key)` or else `get_by_name(key)`; raises `KeyError` if neither matches |
+| `db[key]` | `get_by_id(key)` or else `get_by_name(key)`; raises `UniprotPtmKeyError` (a `KeyError`) if neither matches |
 | `db.get(key, default=None)` | `db[key]`, or `default` instead of `KeyError` |
 | `iter(db)`, `len(db)` | iterate entries in file order; count |
 | `write_tsv(path, *, delimiter="\t") -> Path` | `write_tsv` over all entries |
@@ -164,8 +167,11 @@ Computed properties:
 
 ### Errors
 
-`UniprotPtmError(Exception)` is the base; `UniprotPtmParseError(UniprotPtmError,
-ValueError)` is raised for malformed `ptmlist.txt` input (and by the internal CF parser).
+`UniprotPtmError(ValueError)` is the base (a `ValueError` since 1.1);
+`UniprotPtmParseError(UniprotPtmError, ValueError)` is raised for malformed `ptmlist.txt`
+input (and by the internal CF parser); `UniprotPtmKeyError(UniprotPtmError, KeyError)` is
+raised by `db[key]` on a miss, so both `except KeyError` and `except UniprotPtmError`
+catch it.
 
 ### FeatureType
 
@@ -330,7 +336,7 @@ fresh one per request because serverless runtimes send no ASGI lifespan events.
 
 ## Gotchas
 
-- Lookups return `None` on a miss; only `db[key]` raises `KeyError`.
+- Lookups return `None` on a miss; only `db[key]` raises (`UniprotPtmKeyError`, a `KeyError`).
 - `get_by_name` needs the exact name; use `search` for partial matches. `search("")`
   returns every entry; a non-str query (`None`) returns `[]`.
 - `search` matches substrings of the target and keywords too: `search("serine")`

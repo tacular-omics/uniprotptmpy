@@ -8,8 +8,22 @@ from pathlib import Path
 
 from uniprotptmpy._ptmlist_writer import write_ptmlist
 from uniprotptmpy._tabular import write_tsv
-from uniprotptmpy.errors import UniprotPtmError
+from uniprotptmpy.errors import UniprotPtmError, UniprotPtmKeyError
 from uniprotptmpy.models import PtmEntry
+
+# Joins the lowercased search fields of one entry. A query without this character can
+# only match inside one field, so one substring test replaces one test per field.
+_SEP = "\x00"
+
+
+def _fields(entry: PtmEntry) -> list[str]:
+    """Return the lowercased name, id, target and keywords of ``entry``: the fields search() looks in."""
+    return [entry.name.lower(), entry.id.lower(), entry.target.lower(), *(k.lower() for k in entry.keywords)]
+
+
+def _haystack(entry: PtmEntry) -> str:
+    """Return ``_fields(entry)`` joined by ``_SEP``."""
+    return _SEP.join(_fields(entry))
 
 
 class PtmDatabase:
@@ -28,6 +42,9 @@ class PtmDatabase:
             self._entries.append(entry)
             self._by_id[entry.id] = entry
             self._by_name_lower.setdefault(entry.name.lower(), entry)
+
+        # (entry, lowercased name/id/target/keywords joined by _SEP), in file order, for search().
+        self._haystacks: list[tuple[PtmEntry, str]] = [(e, _haystack(e)) for e in self._entries]
 
     def get_by_id(self, id: int | str | None = None, *, ac: int | str | None = None) -> PtmEntry | None:
         """Look up by accession: 'PTM-0450', bare '0450', unpadded '450' or 'PTM-450', or 450.
@@ -69,14 +86,10 @@ class PtmDatabase:
         if not isinstance(query, str):
             return []
         q = query.lower()
-        return [
-            entry
-            for entry in self._entries
-            if q in entry.name.lower()
-            or q in entry.id.lower()
-            or q in entry.target.lower()
-            or any(q in kw.lower() for kw in entry.keywords)
-        ]
+        if _SEP in q:
+            # Rare: the query could span two joined fields, so test each field.
+            return [e for e in self._entries if any(q in f for f in _fields(e))]
+        return [entry for entry, haystack in self._haystacks if q in haystack]
 
     def get(self, key: object, default: PtmEntry | None = None) -> PtmEntry | None:
         """Return ``db[key]``, or ``default`` if it would raise. Never raises."""
@@ -87,14 +100,14 @@ class PtmDatabase:
 
     def __getitem__(self, key: object) -> PtmEntry:
         """Return the entry by accession (see ``get_by_id``) or, failing that, by name
-        (case-insensitive). Raise KeyError for a missing or non-int/str key."""
+        (case-insensitive). Raise UniprotPtmKeyError (a KeyError) for a missing or non-int/str key."""
         entry = None
         if isinstance(key, int | str) and not isinstance(key, bool):
             entry = self.get_by_id(key)
             if entry is None and isinstance(key, str):
                 entry = self.get_by_name(key)
         if entry is None:
-            raise KeyError(key)
+            raise UniprotPtmKeyError(key)
         return entry
 
     def __contains__(self, key: object) -> bool:

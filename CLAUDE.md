@@ -46,7 +46,7 @@ relative to the working directory (or the source checkout), and 404s otherwise.
 src/uniprotptmpy/
   __init__.py         # public re-exports + __version__ (the only version source)
   models.py           # PtmEntry, CrossReference, TaxonomicRange (frozen slots dataclasses), FeatureType (StrEnum)
-  parser.py           # parse_ptm_list(path) -> PtmDatabase; load(source=None, *, refresh=False) reads bundled data/ptmlist.txt
+  parser.py           # parse_ptm_list(path) -> PtmDatabase; load(source=None, *, refresh=False, cache=False) reads bundled data/ptmlist.txt
   database.py         # PtmDatabase: id/name indexes, substring search, write_tsv/write_ptmlist
   _formula.py         # parse_ptm_formula("H-3 N-1 O1") -> dict; to_proforma_formula(dict) -> Hill string
   _tabular.py         # write_tsv: one xref_<db> column per cross-reference database present
@@ -107,11 +107,11 @@ without entering `TestClient` as a context manager to mimic Vercel.
 
 From `uniprotptmpy/__init__.py` (`__all__`):
 
-- Loading: `load(source=None, *, refresh=False)`, `parse_ptm_list(path)`, `download(dest=None, *, force=False)`
+- Loading: `load(source=None, *, refresh=False, cache=False)`, `parse_ptm_list(path)`, `download(dest=None, *, force=False)`
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`
-  (id, then name, else `KeyError`), `__contains__` (same keys, or a `PtmEntry`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
-- Errors: `UniprotPtmError`, `UniprotPtmParseError` (also a `ValueError`), in `errors.py`
+  (id, then name, else `UniprotPtmKeyError`, a `KeyError`), `__contains__` (same keys, or a `PtmEntry`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
+- Errors: `UniprotPtmError` (a `ValueError`), `UniprotPtmParseError`, `UniprotPtmKeyError` (also a `KeyError`), in `errors.py`
 - Models: `PtmEntry` (plus computed `accession`, `dict_composition`, `proforma_formula` like `"HO3P"`),
   `CrossReference`, `TaxonomicRange`, `FeatureType`
 - `__version__`
@@ -121,7 +121,7 @@ From `uniprotptmpy/__init__.py` (`__all__`):
 - Python >= 3.12, `from __future__ import annotations`, full type hints, `py.typed` shipped.
 - Docstrings: short one-line Google-style; type hints carry the detail.
 - Models are frozen `slots` dataclasses with tuples for multi-valued fields.
-- Lookups return `None` on a miss; only `PtmDatabase[...]` raises (`KeyError`).
+- Lookups return `None` on a miss; only `PtmDatabase[...]` raises (`UniprotPtmKeyError`, a `KeyError`).
 - Ruff line length 120, rules E, W, F, I, B, UP.
 - Tests: `tests/test_<module>.py`, session-scoped `db` fixture in `conftest.py`;
   `test_download.py` mocks `urlretrieve`; `test_server.py` skips without fastapi/mcp.
