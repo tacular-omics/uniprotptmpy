@@ -490,6 +490,15 @@ wheels = [
 ]
 
 [[package]]
+name = "psimodpy"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/11/f9b2434ac9097f1ae644a8b5874bdf3a609f32ae9deeec39444c73e0f06a/psimodpy-1.0.0.tar.gz", hash = "sha256:dc19cc6734ff2b07e8c88ad7e79ecd43d08c172caaa7357f65acb21fad85bb70", size = 367677, upload-time = "2026-09-24T04:22:02.922Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/07/a858ab00c14ff3f3a0623a46fe194a21fc414ec677850ab4cd55457c8a62/psimodpy-1.0.0-py3-none-any.whl", hash = "sha256:bd7aa40255f6891a34a31ba79238c548dd05130ba90531a3a65b07e2e0740e82", size = 280873, upload-time = "2026-09-24T04:22:01.246Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -881,10 +890,23 @@ wheels = [
 ]
 
 [[package]]
+name = "unimodpy"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/21/1b307330c8719ed1654b6430bb7f4bd03f75d0062d5615a7abfaf2678ace/unimodpy-1.0.0.tar.gz", hash = "sha256:8a634f17632bf4bbcc14438bde1ae0d4bcf20beb2bb9aa837c3d99eb1fc2585c", size = 261721, upload-time = "2026-09-24T04:20:07.491Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/99/19e5328553cd7f8669fef68a085100305a9ad1667873c7b85f4cff4e2912/unimodpy-1.0.0-py3-none-any.whl", hash = "sha256:7638ca7d55cade53421115cc3886d6de53a349349ed614e2311110dfaa3aa497", size = 180401, upload-time = "2026-09-24T04:20:05.968Z" },
+]
+
+[[package]]
 name = "uniprotptmpy"
 source = { editable = "." }
 
 [package.optional-dependencies]
+link = [
+    { name = "psimodpy" },
+    { name = "unimodpy" },
+]
 server = [
     { name = "fastapi" },
     { name = "mcp" },
@@ -904,9 +926,11 @@ dev = [
 requires-dist = [
     { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115" },
     { name = "mcp", marker = "extra == 'server'", specifier = ">=2.1.1,<3" },
+    { name = "psimodpy", marker = "extra == 'link'", specifier = ">=1.0,<2" },
+    { name = "unimodpy", marker = "extra == 'link'", specifier = ">=1.0,<2" },
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30" },
 ]
-provides-extras = ["server"]
+provides-extras = ["link", "server"]
 
 [package.metadata.requires-dev]
 dev = [

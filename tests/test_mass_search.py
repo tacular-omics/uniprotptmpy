@@ -14,7 +14,7 @@ from uniprotptmpy.database import _slots
 
 
 def _mass(entry) -> float | None:
-    return entry.monoisotopic_mass
+    return entry.get_mass()
 
 
 def _brute(db: PtmDatabase, delta, tolerance=0.01, unit="da", site=None, position=None):
