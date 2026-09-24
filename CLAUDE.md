@@ -46,12 +46,12 @@ relative to the working directory (or the source checkout), and 404s otherwise.
 src/uniprotptmpy/
   __init__.py         # public re-exports + __version__ (the only version source)
   models.py           # PtmEntry, CrossReference, TaxonomicRange (frozen slots dataclasses), FeatureType (StrEnum)
-  parser.py           # parse_ptm_list(path) -> PtmDatabase; load(source=None) reads bundled data/ptmlist.txt
+  parser.py           # parse_ptm_list(path) -> PtmDatabase; load(source=None, *, refresh=False) reads bundled data/ptmlist.txt
   database.py         # PtmDatabase: id/name indexes, substring search, write_tsv/write_ptmlist
   _formula.py         # parse_ptm_formula("H-3 N-1 O1") -> dict; to_proforma_formula(dict) -> Hill string
   _tabular.py         # write_tsv: one xref_<db> column per cross-reference database present
   _ptmlist_writer.py  # write_ptmlist: re-emits ptmlist.txt entry blocks (no file header)
-  _download.py        # download(dest=None): urlretrieve from UniProt FTP to ~/.cache/uniprotptmpy/ptmlist.txt
+  _download.py        # download(dest=None, *, force=False): urlretrieve from UniProt FTP to ~/.cache/uniprotptmpy/ptmlist.txt
   data/ptmlist.txt    # bundled UniProt release (source of truth)
   data/ptmlist.tsv    # bundled TSV export; identical to load().write_tsv(...) today
   server/             # optional `server` extra (fastapi, uvicorn, mcp>=2.1.1,<3)
@@ -107,11 +107,12 @@ without entering `TestClient` as a context manager to mimic Vercel.
 
 From `uniprotptmpy/__init__.py` (`__all__`):
 
-- Loading: `load(source=None)`, `parse_ptm_list(path)`, `download(dest=None)`
+- Loading: `load(source=None, *, refresh=False)`, `parse_ptm_list(path)`, `download(dest=None, *, force=False)`
 - Writing: `write_tsv(entries, path, *, delimiter="\t")`, `write_ptmlist(entries, path)`
 - Container: `PtmDatabase` with `get_by_id`, `get_by_name`, `search`, `__getitem__`
   (id, then name, else `KeyError`), `__contains__` (same keys, or a `PtmEntry`), `__iter__`, `__len__`, `write_tsv`, `write_ptmlist`
-- Models: `PtmEntry` (plus computed `dict_composition`, `proforma_formula`),
+- Errors: `UniprotPtmError`, `UniprotPtmParseError` (also a `ValueError`), in `errors.py`
+- Models: `PtmEntry` (plus computed `accession`, `dict_composition`, `proforma_formula` like `"HO3P"`),
   `CrossReference`, `TaxonomicRange`, `FeatureType`
 - `__version__`
 

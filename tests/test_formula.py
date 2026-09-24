@@ -37,13 +37,13 @@ def test_proforma_single_count_one() -> None:
 def test_proforma_hill_order() -> None:
     """Carbon first, hydrogen second, then alphabetical."""
     result = to_proforma_formula({"N": 1, "H": 3, "C": 2, "O": 1})
-    assert result == "C2 H3 N O"
+    assert result == "C2H3NO"
 
 
 def test_proforma_no_carbon() -> None:
     """Without carbon, all elements are alphabetical."""
     result = to_proforma_formula({"O": 1, "N": 2})
-    assert result == "N2 O"
+    assert result == "N2O"
 
 
 def test_proforma_empty() -> None:

@@ -16,6 +16,7 @@ import uniprotptmpy
 from uniprotptmpy.server.dashboard import dashboard_entries
 from uniprotptmpy.server.models import (
     EntryListResponse,
+    HealthResponse,
     PtmEntry,
     PtmSummary,
     SearchResponse,
@@ -131,14 +132,9 @@ def dashboard_data() -> Response:
     )
 
 
-@app.get("/api/health")
-def health() -> dict:
-    return {
-        "ok": True,
-        "package": _PACKAGE,
-        "version": uniprotptmpy.__version__,
-        "count": len(_db),
-    }
+@app.get("/api/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    return HealthResponse(ok=True, package=_PACKAGE, version=uniprotptmpy.__version__, count=len(_db))
 
 
 @app.get("/api/entries", response_model=EntryListResponse)

@@ -9,9 +9,15 @@ PTM_LIST_URL = "https://ftp.uniprot.org/pub/databases/uniprot/current_release/kn
 _DEFAULT_DEST = Path.home() / ".cache" / "uniprotptmpy" / "ptmlist.txt"
 
 
-def download(dest: Path | str | None = None) -> Path:
-    """Download the latest ptmlist.txt from UniProt FTP."""
+def download(dest: Path | str | None = None, *, force: bool = False) -> Path:
+    """Download the latest ptmlist.txt from UniProt FTP and return its path.
+
+    ``dest`` defaults to ``~/.cache/uniprotptmpy/ptmlist.txt``. An existing file is
+    reused unless ``force=True``.
+    """
     dest = Path(dest) if dest is not None else _DEFAULT_DEST
+    if dest.exists() and not force:
+        return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(PTM_LIST_URL, dest)
     return dest

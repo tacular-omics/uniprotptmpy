@@ -42,7 +42,7 @@ class PtmEntry:
 
     id: str  # AC field e.g. "PTM-0450"
     name: str  # ID field (human-readable name)
-    feature_type: FeatureType  # FT
+    feature_type: FeatureType | str  # FT; the raw string for a key newer than FeatureType
     target: str  # TG (period stripped)
     amino_acid_position: str | None  # PA (period stripped)
     polypeptide_position: str | None  # PP (period stripped)
@@ -55,15 +55,23 @@ class PtmEntry:
     cross_references: tuple[CrossReference, ...]
 
     @property
+    def accession(self) -> str:
+        """The accession, e.g. "PTM-0450"; same as ``id`` (named as in psimodpy and unimodpy)."""
+        return self.id
+
+    @property
     def dict_composition(self) -> dict[str, int] | None:
-        """Correction formula parsed to element-count dict, or None if no formula."""
+        """Correction formula as {element: count} (isotopes keyed like "13C"), or None if no formula.
+
+        Raises UniprotPtmParseError if the CF cannot be parsed (load() warns about such entries).
+        """
         if self.correction_formula is None:
             return None
         return parse_ptm_formula(self.correction_formula)
 
     @property
     def proforma_formula(self) -> str | None:
-        """Correction formula in ProForma Hill-notation, or None if no formula."""
+        """Correction formula as a ProForma Hill-notation string without spaces ("HO3P"), or None."""
         comp = self.dict_composition
         if comp is None:
             return None

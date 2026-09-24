@@ -196,3 +196,23 @@ def test_server_import_parses_data_file_once(monkeypatch: pytest.MonkeyPatch) ->
     finally:
         monkeypatch.undo()
         importlib.reload(app_module)
+
+
+def test_rest_entry_has_accession_and_references() -> None:
+    client = TestClient(app)
+    body = client.get("/api/entries/PTM-0253").json()
+    assert body["accession"] == body["id"] == "PTM-0253"
+    assert body["proforma_formula"] == "HO3P"
+    refs = body["references"]
+    assert refs, "PTM-0253 has DR lines"
+    assert {"type", "accession", "value"} <= set(refs[0])
+    assert [(r["type"], r["accession"]) for r in refs] == [
+        (x["database"], x["accession"]) for x in body["cross_references"]
+    ]
+    summary = client.get("/api/search", params={"q": "PTM-0253"}).json()["items"][0]
+    assert summary["accession"] == "PTM-0253"
+
+
+@pytest.mark.parametrize("bad", ["foo", "PTM-", "true"])
+def test_rest_unparseable_id_is_404(bad: str) -> None:
+    assert TestClient(app).get(f"/api/entries/{bad}").status_code == 404
