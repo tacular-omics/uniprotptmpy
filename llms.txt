@@ -12,7 +12,7 @@ with `db["..."]`. Entries carry target residue, positions, correction formula,
 monoisotopic/average mass, keywords, taxonomic ranges and cross-references to RESID,
 PSI-MOD, Unimod and ChEBI. `download()` fetches the latest list from UniProt;
 `write_tsv` and `write_ptmlist` export.
-`db.search_mass(79.966, tolerance=0.01, unit="da", site="STY", position=None)` (1.1) finds entries by monoisotopic delta mass (`monoisotopic_mass`), returning `(entry, delta - mass)` pairs closest first; `db.get_by_site("S")` lists entries on a residue. `entry.psimod_ids`/`unimod_ids` give linked accessions; `entry.resolve("psimod"|"unimod")` returns the linked entries with `pip install "uniprotptmpy[link]"`, and then `entry.get_mass()` falls back to a linked mass when UniProt has none.
+`db.search_mass(79.966, tolerance=0.01, unit="da", site="STY", position=None)` (1.1) finds entries by monoisotopic delta mass (`monoisotopic_mass`), returning `(entry, delta - mass)` pairs closest first; `db.get_by_site("S")` lists entries on a residue. `entry.psimod_ids`/`unimod_ids` give linked accessions; `entry.resolve("psimod"|"unimod")` returns the linked entries with `pip install "uniprotptmpy[link]"`; `entry.get_mass()` is always UniProt's own mass (use `resolve()` for a linked one).
 
 A hosted REST + MCP server runs at https://uniprot.tacular.dev (MCP endpoint
 `/mcp`, streamable HTTP, tools `get_by_id`, `get_by_name`, `search`). Install

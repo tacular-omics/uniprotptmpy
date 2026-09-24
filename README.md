@@ -38,7 +38,7 @@ uv add uniprotptmpy
 ```
 
 Requires Python 3.12+. No third-party dependencies for the core package.
-`pip install "uniprotptmpy[link]"` adds psimodpy and unimodpy, for `entry.resolve()` and linked-mass fallback in `entry.get_mass()`.
+`pip install "uniprotptmpy[link]"` adds psimodpy and unimodpy, for `entry.resolve()`. `entry.get_mass()` is always UniProt's own mass; use `resolve()` for a linked one.
 
 ## Quick Example
 

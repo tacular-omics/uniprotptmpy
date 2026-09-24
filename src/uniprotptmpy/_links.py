@@ -22,16 +22,20 @@ type LinkTarget = Literal["psimod", "unimod"]
 LINK_TARGETS: tuple[LinkTarget, ...] = ("psimod", "unimod")
 INSTALL_HINT = 'pip install "uniprotptmpy[link]"'
 
-_MASS_FIELDS = {"psimod": ("diff_mono", "diff_avg"), "unimod": ("delta_mono_mass", "delta_avge_mass")}
-_DIGITS = re.compile(r"(?:MOD:|UNIMOD:)?0*(\d+)", re.IGNORECASE)
+# Each database accepts only its own prefix (or bare digits), so "UNIMOD:46" under
+# PSI-MOD is never read as MOD:00046, nor "MOD:00021" under Unimod as UNIMOD:21.
+_PSIMOD_DIGITS = re.compile(r"(?:MOD:)?0*(\d+)", re.IGNORECASE)
+_UNIMOD_DIGITS = re.compile(r"(?:UNIMOD:)?0*(\d+)", re.IGNORECASE)
 
 
-def _ids(refs: tuple[CrossReference, ...], database: str, prefix: str, width: int) -> tuple[str, ...]:
+def _ids(
+    refs: tuple[CrossReference, ...], database: str, pattern: re.Pattern[str], prefix: str, width: int
+) -> tuple[str, ...]:
     out: dict[str, None] = {}
     for ref in refs:
         if ref.database != database:
             continue
-        match = _DIGITS.fullmatch(ref.accession.strip())
+        match = pattern.fullmatch(ref.accession.strip())
         if match is not None:
             out[f"{prefix}{int(match.group(1)):0{width}d}"] = None
     return tuple(out)
@@ -39,12 +43,12 @@ def _ids(refs: tuple[CrossReference, ...], database: str, prefix: str, width: in
 
 def psimod_ids(refs: tuple[CrossReference, ...]) -> tuple[str, ...]:
     """PSI-MOD accessions as ``"MOD:00046"`` (five digits), in file order, without duplicates."""
-    return _ids(refs, "PSI-MOD", "MOD:", 5)
+    return _ids(refs, "PSI-MOD", _PSIMOD_DIGITS, "MOD:", 5)
 
 
 def unimod_ids(refs: tuple[CrossReference, ...]) -> tuple[str, ...]:
     """Unimod accessions as ``"UNIMOD:21"``, in file order, without duplicates."""
-    return _ids(refs, "Unimod", "UNIMOD:", 1)
+    return _ids(refs, "Unimod", _UNIMOD_DIGITS, "UNIMOD:", 1)
 
 
 @functools.cache
@@ -83,26 +87,3 @@ def resolve(ids: tuple[str, ...], target: LinkTarget) -> tuple[Any, ...]:
     db = linked_database(target)
     found = (db.get_by_id(i) for i in ids)
     return tuple(e for e in found if e is not None)
-
-
-def fallback_mass(psimod: tuple[str, ...], unimod: tuple[str, ...], *, monoisotopic: bool) -> float | None:
-    """First mass among the linked PSI-MOD entries, then the linked Unimod entries.
-
-    A database whose package is not installed is skipped silently; None if nothing has a mass.
-    """
-    links: tuple[tuple[tuple[str, ...], LinkTarget], ...] = ((psimod, "psimod"), (unimod, "unimod"))
-    for ids, target in links:
-        if not ids:
-            continue
-        try:
-            db = _database(target)
-        except ImportError:
-            continue
-        # Read the fields directly (not get_mass()) so psimodpy/unimodpy 1.0 work too.
-        field = _MASS_FIELDS[target][0 if monoisotopic else 1]
-        for i in ids:
-            entry = db.get_by_id(i)
-            mass = getattr(entry, field) if entry is not None else None
-            if mass is not None:
-                return mass
-    return None

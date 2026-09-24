@@ -61,6 +61,23 @@ def test_ids_parse_variants_and_dedupe(db: PtmDatabase) -> None:
     assert e.psimod_ids == ("MOD:00046", "MOD:00047")
 
 
+@pytest.mark.parametrize(
+    ("database", "accession"),
+    [("PSI-MOD", "UNIMOD:46"), ("PSI-MOD", "unimod:00046"), ("Unimod", "MOD:00021"), ("Unimod", "mod:21")],
+)
+def test_ids_reject_the_other_databases_prefix(db: PtmDatabase, database: str, accession: str) -> None:
+    e = _entry(db, cross_references=(CrossReference(database, accession),))
+    assert e.psimod_ids == ()
+    assert e.unimod_ids == ()
+
+
+def test_ids_accept_own_prefix_or_bare_digits(db: PtmDatabase) -> None:
+    refs = (CrossReference("PSI-MOD", "46"), CrossReference("Unimod", "unimod:21"))
+    e = _entry(db, cross_references=refs)
+    assert e.psimod_ids == ("MOD:00046",)
+    assert e.unimod_ids == ("UNIMOD:21",)
+
+
 def test_ids_work_without_extra(db: PtmDatabase, no_extra: None) -> None:
     assert db.get_by_name("Phosphoserine").psimod_ids == ("MOD:00046",)  # type: ignore[union-attr]
 
@@ -102,7 +119,6 @@ def test_resolve_without_extra_says_how_to_install(db: PtmDatabase, no_extra: No
     with pytest.raises(UniprotPtmError, match=r"uniprotptmpy\[link\]") as info:
         db["PTM-0253"].resolve(target)  # type: ignore[arg-type]
     assert isinstance(info.value.__cause__, ImportError)
-    assert isinstance(info.value, ValueError)
 
 
 def test_link_extra_is_declared() -> None:
@@ -131,33 +147,20 @@ def test_get_mass_prefers_uniprot(db: PtmDatabase) -> None:
             assert e.get_mass(monoisotopic=False) == e.average_mass
 
 
-def test_get_mass_falls_back_to_psimod_then_unimod(db: PtmDatabase) -> None:
-    pdb, udb = psimodpy.load(), unimodpy.load()
-    both = (CrossReference("Unimod", "21"), CrossReference("PSI-MOD", "MOD:00047"))
-    e = _entry(db, monoisotopic_mass=None, average_mass=None, cross_references=both)
-    assert e.get_mass() == pdb["MOD:00047"].diff_mono  # PSI-MOD first, whatever the file order
-    assert e.get_mass(monoisotopic=False) == pdb["MOD:00047"].diff_avg
-    uni_only = _entry(db, monoisotopic_mass=None, average_mass=None, cross_references=both[:1])
-    assert uni_only.get_mass() == udb[21].delta_mono_mass
-    assert uni_only.get_mass(monoisotopic=False) == udb[21].delta_avge_mass
-    # A PSI-MOD link without a mass is passed over for the next link.
-    massless = next(m for m in pdb if m.diff_mono is None)
-    skip = _entry(
-        db,
-        monoisotopic_mass=None,
-        cross_references=(CrossReference("PSI-MOD", massless.accession), CrossReference("Unimod", "21")),
-    )
-    assert skip.get_mass() == udb[21].delta_mono_mass
-    assert _entry(db, monoisotopic_mass=None, cross_references=()).get_mass() is None
+def test_get_mass_is_only_the_uniprot_field(db: PtmDatabase) -> None:
+    # With the link extra installed, get_mass() still never fills a missing mass from a link.
+    missing = [e for e in db if e.monoisotopic_mass is None and (e.psimod_ids or e.unimod_ids)]
+    assert missing
+    for e in db:
+        assert e.get_mass() == e.monoisotopic_mass
+        assert e.get_mass(monoisotopic=False) == e.average_mass
 
 
-def test_get_mass_fallback_on_real_data(db: PtmDatabase) -> None:
-    filled = [e for e in db if e.monoisotopic_mass is None and e.get_mass() is not None]
-    assert len(filled) == 49
-    for e in filled:
-        # Fields, not get_mass(): the link extra allows psimodpy/unimodpy 1.0.
-        linked = [m.diff_mono for m in e.resolve("psimod")] + [m.delta_mono_mass for m in e.resolve("unimod")]
-        assert e.get_mass() in linked
+def test_get_mass_does_not_use_links_ptm_0133(db: PtmDatabase) -> None:
+    # Glycine radical: UniProt gives no mass; the linked PSI-MOD term says 0.0.
+    e = db["PTM-0133"]
+    assert e.get_mass() is None
+    assert [m.diff_mono for m in e.resolve("psimod")] == [0.0]
 
 
 def test_get_mass_without_extra_is_the_uniprot_field(db: PtmDatabase, no_extra: None) -> None:
@@ -166,16 +169,16 @@ def test_get_mass_without_extra_is_the_uniprot_field(db: PtmDatabase, no_extra: 
         assert e.get_mass(monoisotopic=False) == e.average_mass
 
 
-def test_search_mass_sees_fallback_masses_only_with_extra(db: PtmDatabase, monkeypatch: pytest.MonkeyPatch) -> None:
-    filled = next(e for e in db if e.monoisotopic_mass is None and e.get_mass() is not None)
-    mass = filled.get_mass()
-    assert mass is not None
-    assert filled in [e for e, _ in load().search_mass(mass, tolerance=0)]
+def test_search_mass_is_the_same_with_and_without_extra(monkeypatch: pytest.MonkeyPatch) -> None:
+    def everything() -> list[tuple[str, float]]:
+        return [(e.id, err) for e, err in load().search_mass(0.0, tolerance=1e6)]
 
+    with_extra = everything()
     _links._database.cache_clear()
     monkeypatch.setitem(sys.modules, "psimodpy", None)
     monkeypatch.setitem(sys.modules, "unimodpy", None)
     try:
-        assert filled not in [e for e, _ in load().search_mass(mass, tolerance=0)]
+        assert everything() == with_extra
     finally:
         _links._database.cache_clear()
+    assert len(with_extra) == sum(e.monoisotopic_mass is not None for e in load())

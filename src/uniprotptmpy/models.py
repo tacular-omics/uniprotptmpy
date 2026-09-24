@@ -86,20 +86,16 @@ class PtmEntry:
         return _links.resolve(ids, target)
 
     def get_mass(self, *, monoisotopic: bool = True) -> float | None:
-        """The mass difference in Da: monoisotopic (default) or, with ``monoisotopic=False``, average.
+        """UniProt's own mass difference in Da: ``monoisotopic_mass`` (default) or ``average_mass``.
 
-        Fallback order: UniProt's own ``monoisotopic_mass``/``average_mass``; if that is
-        ``None`` and the ``link`` extra is installed, the first linked PSI-MOD entry with
-        that mass, then the first linked Unimod entry; else ``None``. Without the extra
-        this is exactly the UniProt field.
+        Returns ``None`` when UniProt gives no mass (``MM``/``MA``); it never fills the gap
+        from a linked database. To use a linked mass, call ``resolve("psimod")`` or
+        ``resolve("unimod")`` and read it from the entry you choose. That is not automatic
+        because a link does not always carry the same mass: PTM-0133 (glycine radical)
+        links to a PSI-MOD term whose mass difference is 0.0, some links are wrong, and
+        GPI-anchor links give only the anchor core.
         """
-        mass = self.monoisotopic_mass if monoisotopic else self.average_mass
-        if mass is not None:
-            return mass
-        psimod, unimod = self.psimod_ids, self.unimod_ids
-        if not psimod and not unimod:
-            return None
-        return _links.fallback_mass(psimod, unimod, monoisotopic=monoisotopic)
+        return self.monoisotopic_mass if monoisotopic else self.average_mass
 
     @property
     def dict_composition(self) -> dict[str, int] | None:
