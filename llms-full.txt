@@ -200,7 +200,7 @@ catch it.
 
 `StrEnum` of UniProt feature keys: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`,
 `DISULFID`. A key UniProt adds later is kept as a plain string, with a warning. Compares equal to its string value (`e.feature_type == "MOD_RES"`).
-Bundled counts: MOD_RES 376, CARBOHYD 165, CROSSLNK 159, LIPID 48, DISULFID 0.
+Bundled counts: MOD_RES 377, CARBOHYD 165, CROSSLNK 159, LIPID 49, DISULFID 0.
 
 ### CrossReference
 
@@ -228,7 +228,7 @@ from uniprotptmpy import FeatureType, load
 
 db = load()
 lipids = [e for e in db if e.feature_type == FeatureType.LIPID]
-print(len(lipids))                                  # 48
+print(len(lipids))                                  # 49
 lysine_mods = [e for e in db if e.target == "Lysine"]
 print(all(e.target == "Lysine" for e in lysine_mods))  # True
 ```
