@@ -34,8 +34,8 @@ server = [
 ]
 # entry.resolve("psimod" | "unimod").
 link = [
-    "psimodpy>=1.0,<2",
-    "unimodpy>=1.0,<2",
+    "psimodpy>=1.1,<2",
+    "unimodpy>=1.1,<2",
 ]
 
 [project.urls]

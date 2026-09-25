@@ -590,11 +590,11 @@ wheels = [
 
 [[package]]
 name = "psimodpy"
-version = "1.0.0"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ed/11/f9b2434ac9097f1ae644a8b5874bdf3a609f32ae9deeec39444c73e0f06a/psimodpy-1.0.0.tar.gz", hash = "sha256:dc19cc6734ff2b07e8c88ad7e79ecd43d08c172caaa7357f65acb21fad85bb70", size = 367677, upload-time = "2026-09-24T04:22:02.922Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/ab/1f0f2b22bf9d6f1287ed9ace0cb27ce7c0ec18b3729c317b88fa49a86ac8/psimodpy-1.1.0.tar.gz", hash = "sha256:acf6d13041154c432f03429ce96bd88d95ca317d5b845053114401f02d4923f3", size = 395539, upload-time = "2026-09-25T00:42:42.589Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/07/a858ab00c14ff3f3a0623a46fe194a21fc414ec677850ab4cd55457c8a62/psimodpy-1.0.0-py3-none-any.whl", hash = "sha256:bd7aa40255f6891a34a31ba79238c548dd05130ba90531a3a65b07e2e0740e82", size = 280873, upload-time = "2026-09-24T04:22:01.246Z" },
+    { url = "https://files.pythonhosted.org/packages/70/b6/6ff8268dafd674868752662fff82441c3c6c52ff7d0c1d27e6ed5c93720a/psimodpy-1.1.0-py3-none-any.whl", hash = "sha256:6bccf45798f17ae1f5892f15617438af04ff2f8d1276bc5a766798e8ede7fb09", size = 287111, upload-time = "2026-09-25T00:42:41.005Z" },
 ]
 
 [[package]]
@@ -1004,11 +1004,11 @@ wheels = [
 
 [[package]]
 name = "unimodpy"
-version = "1.0.0"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4e/21/1b307330c8719ed1654b6430bb7f4bd03f75d0062d5615a7abfaf2678ace/unimodpy-1.0.0.tar.gz", hash = "sha256:8a634f17632bf4bbcc14438bde1ae0d4bcf20beb2bb9aa837c3d99eb1fc2585c", size = 261721, upload-time = "2026-09-24T04:20:07.491Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/66/b4/3d3b3ab41dfd58f367c0b2cf8ea42730335dfab7b9d1e19ea0d2559506d0/unimodpy-1.1.0.tar.gz", hash = "sha256:563ec3dfebd310dcb4708ed07a72f6d130e2533187a43d05539228090e376d76", size = 284191, upload-time = "2026-09-25T00:41:57.03Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e8/99/19e5328553cd7f8669fef68a085100305a9ad1667873c7b85f4cff4e2912/unimodpy-1.0.0-py3-none-any.whl", hash = "sha256:7638ca7d55cade53421115cc3886d6de53a349349ed614e2311110dfaa3aa497", size = 180401, upload-time = "2026-09-24T04:20:05.968Z" },
+    { url = "https://files.pythonhosted.org/packages/81/8d/3f50b2aaf9d829a112d5dcf5afb93eed7cfe26cc79a2a502b560e5b29041/unimodpy-1.1.0-py3-none-any.whl", hash = "sha256:9ab465f996d87ca71de15f9447539271228f6cda0ea21b7dd80cd5d32983f542", size = 185957, upload-time = "2026-09-25T00:41:55.487Z" },
 ]
 
 [[package]]
@@ -1040,8 +1040,8 @@ dev = [
 requires-dist = [
     { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115" },
     { name = "mcp", marker = "extra == 'server'", specifier = ">=2.1.1,<3" },
-    { name = "psimodpy", marker = "extra == 'link'", specifier = ">=1.0,<2" },
-    { name = "unimodpy", marker = "extra == 'link'", specifier = ">=1.0,<2" },
+    { name = "psimodpy", marker = "extra == 'link'", specifier = ">=1.1,<2" },
+    { name = "unimodpy", marker = "extra == 'link'", specifier = ">=1.1,<2" },
     { name = "uvicorn", marker = "extra == 'server'", specifier = ">=0.30" },
 ]
 provides-extras = ["link", "server"]

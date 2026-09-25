@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] (2026-09-24)
+
 Additive only: nothing that worked in 1.0 changes behaviour.
 
 ### Added
@@ -12,7 +14,7 @@ Additive only: nothing that worked in 1.0 changes behaviour.
 - `get_by_site(site)`: entries whose target includes residue `site` (one letter, case-insensitive), in file order. It takes exactly one residue (`search_mass(site=)` takes several). Unknown or non-string input returns `[]`.
 - `PtmEntry.get_mass(*, monoisotopic=True) -> float | None`: the mass difference in Da, `monoisotopic_mass` (default) or `average_mass` (`monoisotopic=False`), with the same keyword as tacular 2.0's `get_mass`. The old attributes stay. `search_mass` uses it. It is only UniProt's own mass (`MM`/`MA`), or `None`: it never fills a missing mass from a linked PSI-MOD or Unimod entry, with or without the `link` extra, so `search_mass` gives the same results either way. For a linked mass, call `resolve()` and pick the entry yourself; it is not automatic because links do not always carry the same mass (PTM-0133, glycine radical, links to a PSI-MOD term with mass difference 0.0; some links are wrong; GPI-anchor links give only the core).
 - `PtmEntry.psimod_ids` / `PtmEntry.unimod_ids`: linked accessions from `cross_references`, normalized to `"MOD:00046"` / `"UNIMOD:21"` (each accepts only its own prefix or bare digits, so a stray `"UNIMOD:46"` under PSI-MOD is ignored), in order and without duplicates (512 entries link to PSI-MOD, 252 to Unimod). They need no extra dependency.
-- `PtmEntry.resolve("psimod" | "unimod")` returns the linked `psimodpy.PsiModEntry` / `unimodpy.UnimodEntry` objects from each package's bundled data, loaded once per process. It skips ids the linked release lacks. It needs the new optional extra `uniprotptmpy[link]` (`psimodpy>=1.0,<2`, `unimodpy>=1.0,<2`); without the extra it raises `UniprotPtmError` saying to install it, and another target also raises `UniprotPtmError`.
+- `PtmEntry.resolve("psimod" | "unimod")` returns the linked `psimodpy.PsiModEntry` / `unimodpy.UnimodEntry` objects from each package's bundled data, loaded once per process. It skips ids the linked release lacks. It needs the new optional extra `uniprotptmpy[link]` (`psimodpy>=1.1,<2`, `unimodpy>=1.1,<2`); without the extra it raises `UniprotPtmError` saying to install it, and another target also raises `UniprotPtmError`.
 
 ### Changed
 
