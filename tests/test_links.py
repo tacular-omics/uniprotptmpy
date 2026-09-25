@@ -127,7 +127,7 @@ def test_link_extra_is_declared() -> None:
 
     pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
     # Capped major pins, per the tacular-omics sibling pin policy.
-    assert pyproject["project"]["optional-dependencies"]["link"] == ["psimodpy>=1.0,<2", "unimodpy>=1.0,<2"]
+    assert pyproject["project"]["optional-dependencies"]["link"] == ["psimodpy>=1.1,<2", "unimodpy>=1.1,<2"]
 
 
 # ---------------------------------------------------------------- get_mass()

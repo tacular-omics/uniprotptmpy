@@ -146,7 +146,7 @@ on a duplicate accession; if two entries share a name, the first keeps it.
 
 `PtmEntry.psimod_ids` / `PtmEntry.unimod_ids`: linked accessions from `cross_references`, normalized to `"MOD:00046"` / `"UNIMOD:21"` (each accepts only its own prefix or bare digits, so a stray `"UNIMOD:46"` under PSI-MOD is ignored), in order and without duplicates (512 entries link to PSI-MOD, 252 to Unimod). They need no extra dependency.
 
-`PtmEntry.resolve("psimod" | "unimod")` returns the linked `psimodpy.PsiModEntry` / `unimodpy.UnimodEntry` objects from each package's bundled data, loaded once per process. It skips ids the linked release lacks. It needs the new optional extra `uniprotptmpy[link]` (`psimodpy>=1.0,<2`, `unimodpy>=1.0,<2`); without the extra it raises `UniprotPtmError` saying to install it, and another target also raises `UniprotPtmError`.
+`PtmEntry.resolve("psimod" | "unimod")` returns the linked `psimodpy.PsiModEntry` / `unimodpy.UnimodEntry` objects from each package's bundled data, loaded once per process. It skips ids the linked release lacks. It needs the new optional extra `uniprotptmpy[link]` (`psimodpy>=1.1,<2`, `unimodpy>=1.1,<2`); without the extra it raises `UniprotPtmError` saying to install it, and another target also raises `UniprotPtmError`.
 
 ```python
 entry = db.get_by_name("Phosphoserine")
