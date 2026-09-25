@@ -8,7 +8,7 @@ from uniprotptmpy.errors import UniprotPtmError, UniprotPtmKeyError, UniprotPtmP
 from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, TaxonomicRange
 from uniprotptmpy.parser import load, parse_ptm_list
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 __all__ = [
     "__version__",
