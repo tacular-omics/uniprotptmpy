@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 import pytest
 from hypothesis import given
@@ -226,3 +227,56 @@ def test_get_by_site_unknown_is_empty(db: PtmDatabase, site: object) -> None:
 def test_get_by_site_returns_fresh_list(db: PtmDatabase) -> None:
     db.get_by_site("S").clear()
     assert db.get_by_site("S")
+
+
+# ---------------------------------------------------------------- every entry finds itself
+
+_PP_POSITION = {"N-terminal": "peptide n-term", "C-terminal": "peptide c-term", "Anywhere": "anywhere"}
+_PP_POSITION["Protein core"] = "anywhere"
+_PP_RE = re.compile("|".join(_PP_POSITION))
+# TG residue name -> site query, written out here so a wrong mapping in the package fails.
+_SITE = {
+    "Alanine": "A", "Arginine": "R", "Asparagine": "N", "Asparagine or Aspartate": "DN",
+    "Aspartate": "D", "Cysteine": "C", "Glutamate": "E", "Glutamine": "Q", "Glycine": "G",
+    "Histidine": "H", "Isoleucine": "I", "Leucine": "L", "Lysine": "K", "Methionine": "M",
+    "Phenylalanine": "F", "Proline": "P", "Pyrrolysine": "O", "Selenocysteine": "U",
+    "Serine": "S", "Threonine": "T", "Tryptophan": "W", "Tyrosine": "Y", "Valine": "V",
+}  # fmt: skip
+
+
+def test_every_entry_found_at_its_own_mass_site_and_position(db: PtmDatabase) -> None:
+    """search_mass at an entry's own MM (tolerance 0), at each of its own TG residues and the
+    PP position of that residue, returns the entry.
+
+    Catches: a mass dropped from the sorted index, a TG residue mapped to the wrong letter,
+    a PP token mapped to the wrong terminus, and PP positions paired with the wrong
+    crosslink residue. The residue table and PP mapping are written out in this test.
+    """
+    failures = []
+    checked = 0
+    for e in db:
+        mass = e.monoisotopic_mass
+        if mass is None:
+            continue
+        checked += 1
+        if e not in [hit for hit, _ in db.search_mass(mass, tolerance=0)]:
+            failures.append(f"{e.id}: not found at MM {mass}")
+            continue
+        residues = e.target.split("-")
+        positions = _PP_RE.findall(e.polypeptide_position) if e.polypeptide_position else ["Anywhere"] * len(residues)
+        if len(positions) != len(residues):
+            failures.append(f"{e.id}: TG {e.target} and PP {e.polypeptide_position} differ in length")
+            continue
+        for residue, pp in zip(residues, positions, strict=True):
+            if residue == "Undefined":  # no residue to query
+                continue
+            if residue not in _SITE:
+                failures.append(f"{e.id}: unknown TG residue {residue!r}")
+                continue
+            query = {"site": _SITE[residue], "position": _PP_POSITION[pp]}
+            if e not in [hit for hit, _ in db.search_mass(mass, tolerance=0, **query)]:
+                failures.append(
+                    f"{e.id}: not found at MM {mass} with {query} (TG {e.target}, PP {e.polypeptide_position})"
+                )
+    assert checked > 500
+    assert not failures, "\n".join(failures)
