@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 
 from uniprotptmpy import PtmDatabase, UniprotPtmError
 from uniprotptmpy._mass import POSITIONS, parse_position, parse_site, slot_matches
-from uniprotptmpy.database import _RESIDUE_LETTERS, _slots
+from uniprotptmpy.database import _slots
 
 
 def _mass(entry) -> float | None:
@@ -234,16 +234,23 @@ def test_get_by_site_returns_fresh_list(db: PtmDatabase) -> None:
 _PP_POSITION = {"N-terminal": "peptide n-term", "C-terminal": "peptide c-term", "Anywhere": "anywhere"}
 _PP_POSITION["Protein core"] = "anywhere"
 _PP_RE = re.compile("|".join(_PP_POSITION))
+# TG residue name -> site query, written out here so a wrong mapping in the package fails.
+_SITE = {
+    "Alanine": "A", "Arginine": "R", "Asparagine": "N", "Asparagine or Aspartate": "DN",
+    "Aspartate": "D", "Cysteine": "C", "Glutamate": "E", "Glutamine": "Q", "Glycine": "G",
+    "Histidine": "H", "Isoleucine": "I", "Leucine": "L", "Lysine": "K", "Methionine": "M",
+    "Phenylalanine": "F", "Proline": "P", "Pyrrolysine": "O", "Selenocysteine": "U",
+    "Serine": "S", "Threonine": "T", "Tryptophan": "W", "Tyrosine": "Y", "Valine": "V",
+}  # fmt: skip
 
 
 def test_every_entry_found_at_its_own_mass_site_and_position(db: PtmDatabase) -> None:
     """search_mass at an entry's own MM (tolerance 0), at each of its own TG residues and the
     PP position of that residue, returns the entry.
 
-    Catches: a mass dropped from or misplaced in the sorted index (bisect edge, duplicate
-    masses), a PP token mapped to the wrong terminus or paired with
-    the wrong crosslink residue, and a terminal entry wrongly filtered out at its own terminus.
-    The brute-force property tests share ``_slots`` with the index, so they miss slot bugs.
+    Catches: a mass dropped from the sorted index, a TG residue mapped to the wrong letter,
+    a PP token mapped to the wrong terminus, and PP positions paired with the wrong
+    crosslink residue. The residue table and PP mapping are written out in this test.
     """
     failures = []
     checked = 0
@@ -256,14 +263,17 @@ def test_every_entry_found_at_its_own_mass_site_and_position(db: PtmDatabase) ->
             failures.append(f"{e.id}: not found at MM {mass}")
             continue
         residues = e.target.split("-")
-        positions = _PP_RE.findall(e.polypeptide_position or "")
+        positions = _PP_RE.findall(e.polypeptide_position) if e.polypeptide_position else ["Anywhere"] * len(residues)
         if len(positions) != len(residues):
-            positions = ["Anywhere"] * len(residues)
+            failures.append(f"{e.id}: TG {e.target} and PP {e.polypeptide_position} differ in length")
+            continue
         for residue, pp in zip(residues, positions, strict=True):
-            site = _RESIDUE_LETTERS.get(residue)
-            if site is None:  # "Undefined": no residue to query
+            if residue == "Undefined":  # no residue to query
                 continue
-            query = {"site": "".join(sorted(site)), "position": _PP_POSITION[pp]}
+            if residue not in _SITE:
+                failures.append(f"{e.id}: unknown TG residue {residue!r}")
+                continue
+            query = {"site": _SITE[residue], "position": _PP_POSITION[pp]}
             if e not in [hit for hit, _ in db.search_mass(mass, tolerance=0, **query)]:
                 failures.append(
                     f"{e.id}: not found at MM {mass} with {query} (TG {e.target}, PP {e.polypeptide_position})"
