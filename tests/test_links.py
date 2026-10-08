@@ -182,3 +182,37 @@ def test_search_mass_is_the_same_with_and_without_extra(monkeypatch: pytest.Monk
     finally:
         _links._database.cache_clear()
     assert len(with_extra) == sum(e.monoisotopic_mass is not None for e in load())
+
+
+def test_every_dr_line_is_parsed_and_every_link_gives_an_id(db: PtmDatabase) -> None:
+    """Each entry's cross_references equal its raw ``DR`` lines in the bundled ptmlist.txt,
+    and every PSI-MOD and Unimod reference yields exactly one normalized id.
+
+    Catches: the parser dropping or mangling a DR line (an unexpected database name,
+    a missing trailing period, an accession containing "; "), and psimod_ids/unimod_ids
+    silently skipping an accession whose format they do not match.
+    """
+    from importlib.resources import files
+
+    raw: dict[str, list[tuple[str, str]]] = {}
+    ac = None
+    for line in files("uniprotptmpy").joinpath("data/ptmlist.txt").read_text(encoding="utf-8").splitlines():
+        if line.startswith("AC   "):
+            ac = line[5:].strip()
+            raw[ac] = []
+        elif line.startswith("DR   ") and ac is not None:
+            database, accession = line[5:].rstrip().removesuffix(".").split("; ", 1)
+            raw[ac].append((database, accession))
+        elif line.startswith("//"):
+            ac = None
+    failures = []
+    for e in db:
+        parsed = [(r.database, r.accession) for r in e.cross_references]
+        if parsed != raw.get(e.id):
+            failures.append(f"{e.id}: parsed {parsed} != file {raw.get(e.id)}")
+        for database, ids in (("PSI-MOD", e.psimod_ids), ("Unimod", e.unimod_ids)):
+            refs = {a for d, a in parsed if d == database}
+            if len(ids) != len(refs):
+                failures.append(f"{e.id}: {database} refs {sorted(refs)} gave ids {ids}")
+    assert len(raw) == len(db)
+    assert not failures, "\n".join(failures)

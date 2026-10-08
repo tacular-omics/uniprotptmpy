@@ -23,7 +23,10 @@ MONO_TOL = 5e-5  # MM is given to 6 decimals; atomic mass tables differ by up to
 AVG_TOL = 0.02  # MA is given to 2 decimals
 
 KNOWN_MISMATCHES: dict[str, str] = {
-    "PTM-0681": "MM 781.125835 does not match CF C36 H41 N13 O17 P2 S1 (781.1459): upstream data error",
+    "PTM-0681": (
+        "MM 781.125835 does not match CF C36 H41 N13 O17 P2 S1 (1021.193932); "
+        "MA 781.52 agrees with MM, so the CF is wrong: upstream"
+    ),
     "PTM-0741": "MM 104.0261 is C7 H4 O1 (104.026215) truncated, not rounded, to 4 decimals: upstream",
 }
 

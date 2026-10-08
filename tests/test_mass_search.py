@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 import pytest
 from hypothesis import given
@@ -10,7 +11,7 @@ from hypothesis import strategies as st
 
 from uniprotptmpy import PtmDatabase, UniprotPtmError
 from uniprotptmpy._mass import POSITIONS, parse_position, parse_site, slot_matches
-from uniprotptmpy.database import _slots
+from uniprotptmpy.database import _RESIDUE_LETTERS, _slots
 
 
 def _mass(entry) -> float | None:
@@ -226,3 +227,46 @@ def test_get_by_site_unknown_is_empty(db: PtmDatabase, site: object) -> None:
 def test_get_by_site_returns_fresh_list(db: PtmDatabase) -> None:
     db.get_by_site("S").clear()
     assert db.get_by_site("S")
+
+
+# ---------------------------------------------------------------- every entry finds itself
+
+_PP_POSITION = {"N-terminal": "peptide n-term", "C-terminal": "peptide c-term", "Anywhere": "anywhere"}
+_PP_POSITION["Protein core"] = "anywhere"
+_PP_RE = re.compile("|".join(_PP_POSITION))
+
+
+def test_every_entry_found_at_its_own_mass_site_and_position(db: PtmDatabase) -> None:
+    """search_mass at an entry's own MM (tolerance 0), at each of its own TG residues and the
+    PP position of that residue, returns the entry.
+
+    Catches: a mass dropped from or misplaced in the sorted index (bisect edge, duplicate
+    masses), a PP token mapped to the wrong terminus or paired with
+    the wrong crosslink residue, and a terminal entry wrongly filtered out at its own terminus.
+    The brute-force property tests share ``_slots`` with the index, so they miss slot bugs.
+    """
+    failures = []
+    checked = 0
+    for e in db:
+        mass = e.monoisotopic_mass
+        if mass is None:
+            continue
+        checked += 1
+        if e not in [hit for hit, _ in db.search_mass(mass, tolerance=0)]:
+            failures.append(f"{e.id}: not found at MM {mass}")
+            continue
+        residues = e.target.split("-")
+        positions = _PP_RE.findall(e.polypeptide_position or "")
+        if len(positions) != len(residues):
+            positions = ["Anywhere"] * len(residues)
+        for residue, pp in zip(residues, positions, strict=True):
+            site = _RESIDUE_LETTERS.get(residue)
+            if site is None:  # "Undefined": no residue to query
+                continue
+            query = {"site": "".join(sorted(site)), "position": _PP_POSITION[pp]}
+            if e not in [hit for hit, _ in db.search_mass(mass, tolerance=0, **query)]:
+                failures.append(
+                    f"{e.id}: not found at MM {mass} with {query} (TG {e.target}, PP {e.polypeptide_position})"
+                )
+    assert checked > 500
+    assert not failures, "\n".join(failures)
