@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.1.2] (2026-10-26)
+
+### Changed
+
+- The test suite now checks every bundled entry instead of a sample.
+- `opentelemetry-api` moves to 1.45.1 in the locked environment (reached only
+  through the optional `server` extra; GHSA: unbounded tracestate parsing).
+- Updated development and test dependencies. No changes to the library.
+
 ## [1.1.1] (2026-09-25)
 
 ### Added
