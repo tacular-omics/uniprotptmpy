@@ -4,23 +4,25 @@
 
 ### Fixed
 
-- `server` extra: `uvicorn>=0.30` could never be installed. mcp requires
-  `uvicorn>=0.31.1`, so no resolution of the extra contained a 0.30.x, and
-  `--resolution lowest-direct` silently stepped over the declared floor - the floor was
-  unreachable rather than merely untested. Now `uvicorn>=0.31.1`. The raise states what
-  mcp already required, so no environment that could install the extra before is excluded
-  now. The sole exception is emscripten, where mcp declares no uvicorn requirement and
-  this floor is the only bound.
+- `server` extra: `uvicorn>=0.30` could not be installed on any platform but emscripten.
+  mcp requires `uvicorn>=0.31.1; sys_platform != "emscripten"`, so off emscripten no
+  resolution of the extra contained a 0.30.x, and `--resolution lowest-direct` silently
+  stepped over the declared floor - there the floor was unreachable rather than merely
+  untested. Now `uvicorn>=0.31.1`. Off emscripten the raise states what mcp already
+  required, so no environment that could install the extra before is excluded now. On
+  emscripten mcp's requirement does not apply and this floor is the only bound, so a
+  0.30.x was installable there and is not now.
 
 ### Changed
 
 - `server` extra: lowered the remaining floors to `fastapi>=0.110.1` (was `>=0.115`) and
-  `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). Both are reachable and tested: with `uvicorn`,
-  `mcp` and `pydantic` pinned at their own floors, fastapi 0.110.1 installs and the whole
-  server suite passes. `mcp>=2.0.0` is the lowest release under the `<3` cap. 0.110.1 is
-  a common floor shared with psimodpy and unimodpy rather than the lowest
-  fastapi that works - 0.108.0 and 0.100.0 resolve and pass the suite too. No change to
-  what the package does.
+  `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). Both are reachable and tested: with `uvicorn`, `mcp`
+  and `pydantic` pinned at their own floors, fastapi 0.110.1 installs and the whole server
+  suite passes. `mcp>=2.0.0` is the lowest release under the `<3` cap, and lowering that
+  floor does not unmask the old `uvicorn>=0.30`, because mcp 2.0.0 declares the same
+  `uvicorn>=0.31.1; sys_platform != "emscripten"` that 2.1.1 did. 0.110.1 is a common floor
+  shared with psimodpy and unimodpy rather than the lowest fastapi that works - 0.108.0 and
+  0.100.0 resolve and pass the suite too. No change to what the package does.
 - `server` extra: `pydantic>=2.12,<3`. The server has always imported pydantic at module
   level and never declared it. It only arrived transitively through fastapi and mcp. The
   floor excludes nothing installable, because every mcp release this extra allows
