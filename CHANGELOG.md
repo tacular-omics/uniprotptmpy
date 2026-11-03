@@ -14,13 +14,20 @@
 
 ### Changed
 
-- `server` extra: corrected the remaining floors to the lowest versions that actually
-  resolve together and pass the suite - `fastapi>=0.110.1` (was `>=0.115`) and
-  `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). No change to what the package does.
+- `server` extra: lowered the remaining floors to `fastapi>=0.110.1` (was `>=0.115`) and
+  `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). Both are reachable and tested: with `uvicorn`,
+  `mcp` and `pydantic` pinned at their own floors, fastapi 0.110.1 installs and the whole
+  server suite passes. `mcp>=2.0.0` is the lowest release under the `<3` cap. 0.110.1 is
+  a common floor shared with psimodpy and unimodpy rather than the lowest
+  fastapi that works - 0.108.0 and 0.100.0 resolve and pass the suite too. No change to
+  what the package does.
 - `server` extra: `pydantic>=2.12,<3`. The server has always imported pydantic at module
-  level and never declared it. It only arrived transitively through fastapi and mcp.
-  Declaring it excludes nothing installable: mcp 2.0.0 already requires `pydantic>=2.12.0`
-  and fastapi already caps pydantic below 3.
+  level and never declared it. It only arrived transitively through fastapi and mcp. The
+  floor excludes nothing installable, because every mcp release this extra allows
+  requires `pydantic>=2.12.0`. The cap is now the only pydantic cap in a default install:
+  fastapi carried `pydantic<3.0.0` up to 0.125.0 and declares a floor alone from 0.126.0
+  on, and mcp declares a floor alone. pydantic has published no 3.x release, so the cap
+  excludes nothing today either.
 
 ## [1.1.2] (2026-10-26)
 
