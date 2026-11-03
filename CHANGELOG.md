@@ -2,23 +2,25 @@
 
 ## [Unreleased]
 
-### Added
-
-- `server` extra: `pydantic>=2.12,<3`. The server has always imported pydantic at module
-  level and never declared it. It only arrived transitively through fastapi and mcp.
-
 ### Fixed
 
 - `server` extra: `uvicorn>=0.30` could never be installed. mcp requires
   `uvicorn>=0.31.1`, so no resolution of the extra contained a 0.30.x, and
   `--resolution lowest-direct` silently stepped over the declared floor - the floor was
-  unreachable rather than merely untested. Now `uvicorn>=0.31.1`.
+  unreachable rather than merely untested. Now `uvicorn>=0.31.1`. The raise states what
+  mcp already required, so no environment that could install the extra before is excluded
+  now. The sole exception is emscripten, where mcp declares no uvicorn requirement and
+  this floor is the only bound.
 
 ### Changed
 
 - `server` extra: corrected the remaining floors to the lowest versions that actually
   resolve together and pass the suite - `fastapi>=0.110.1` (was `>=0.115`) and
   `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). No change to what the package does.
+- `server` extra: `pydantic>=2.12,<3`. The server has always imported pydantic at module
+  level and never declared it. It only arrived transitively through fastapi and mcp.
+  Declaring it excludes nothing installable: mcp 2.0.0 already requires `pydantic>=2.12.0`
+  and fastapi already caps pydantic below 3.
 
 ## [1.1.2] (2026-10-26)
 
