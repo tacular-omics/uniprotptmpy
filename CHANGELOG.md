@@ -5,7 +5,7 @@
 ### Added
 
 - `server` extra: `pydantic>=2.12,<3`. The server has always imported pydantic at module
-  level and never declared it; it only arrived transitively through fastapi and mcp.
+  level and never declared it. It only arrived transitively through fastapi and mcp.
 
 ### Fixed
 
@@ -26,18 +26,18 @@
 
 - The test suite now checks every bundled entry instead of a sample.
 - `opentelemetry-api` moves to 1.45.1 in the locked environment (reached only
-  through the optional `server` extra; GHSA: unbounded tracestate parsing).
+  through the optional `server` extra). GHSA: unbounded tracestate parsing.
 - Updated development and test dependencies. No changes to the library.
 
 ## [1.1.1] (2026-09-25)
 
 ### Added
 
-- Browser site (`docs/index.html`): mass search. Enter a signed delta mass, a tolerance in Da or ppm (ppm is relative to a precursor mass you enter) and monoisotopic or average mass; it combines with the text search, adds a sortable Δ error column (closest first) and keeps its state in the URL (`?mass=42.0106&tol=0.01&unit=da`). Same matching rule as `search_mass()`. `scripts/test_mass_search.py` checks it headless against `search_mass()` (needs Playwright).
+- Browser site (`docs/index.html`): mass search. Enter a signed delta mass, a tolerance in Da or ppm (ppm is relative to a precursor mass you enter) and monoisotopic or average mass. It combines with the text search, adds a sortable Δ error column (closest first) and keeps its state in the URL (`?mass=42.0106&tol=0.01&unit=da`). Same matching rule as `search_mass()`. `scripts/test_mass_search.py` checks it headless against `search_mass()` (needs Playwright).
 
 ### Changed
 
-- Browser site restyled to the shared tacular-omics style (plain academic layout, labelled units, light and dark themes); the footer shows the package version the data came from.
+- Browser site restyled to the shared tacular-omics style (plain academic layout, labelled units, light and dark themes). The footer shows the package version the data came from.
 - The source distribution now contains only the source, tests and the README, changelog, citation and license files: no paper, docs, lockfile or repository tooling.
 
 ## [1.1.0] (2026-09-24)
