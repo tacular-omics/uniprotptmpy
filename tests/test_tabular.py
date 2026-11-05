@@ -1,7 +1,7 @@
 import csv
 
 from uniprotptmpy import PtmDatabase, write_tsv
-from uniprotptmpy._tabular import build_columns
+from uniprotptmpy._tabular import _SUB_DELIM, _format_taxonomic_range, build_columns
 
 
 def _read(path, delimiter="\t"):
@@ -72,9 +72,7 @@ def test_keywords_joined(db: PtmDatabase, tmp_path) -> None:
     write_tsv(db, out)
     rows = _read_dict(out)
     row = next(r for r in rows if r["name"] == "N6-acetyl-N6-methyllysine")
-    assert "Acetylation" in row["keywords"]
-    assert "Methylation" in row["keywords"]
-    assert "; " in row["keywords"]
+    assert row["keywords"].split(_SUB_DELIM) == ["Acetylation", "Methylation"]
 
 
 def test_xref_columns_split_by_database(db: PtmDatabase, tmp_path) -> None:
@@ -156,3 +154,59 @@ def test_bundled_tsv_equals_write_tsv_output(db: PtmDatabase, tmp_path) -> None:
     # Text mode: a Windows git checkout may give the bundled file CRLF line endings.
     bundled = files("uniprotptmpy").joinpath("data/ptmlist.tsv").read_text(encoding="utf-8")
     assert out.read_text(encoding="utf-8") == bundled
+
+
+def test_no_cell_contains_the_subvalue_delimiter(db: PtmDatabase, tmp_path) -> None:
+    """The multi-value separator must not occur inside any value it separates.
+
+    This is the invariant that makes a multi-valued cell splittable at all. It held
+    for neither keywords nor taxonomic ranges under the old "; " separator, because
+    UniProt writes a range as "Archaea; taxId:2157 (Archaea)".
+    """
+    out = tmp_path / "ptm.tsv"
+    write_tsv(db, out)
+    emitted = {row["id"]: row for row in _read_dict(out)}
+    for entry in db:
+        row = emitted[entry.accession]
+        values = (*entry.keywords, *(_format_taxonomic_range(t) for t in entry.taxonomic_ranges))
+        for value in values:
+            assert _SUB_DELIM not in value, f"{entry.accession}: {value!r} contains {_SUB_DELIM!r}"
+        # And the emitted cells hold exactly as many separators as there are gaps.
+        for column, count in (("keywords", len(entry.keywords)), ("taxonomic_ranges", len(entry.taxonomic_ranges))):
+            assert row[column].count(_SUB_DELIM) == max(count - 1, 0), f"{entry.accession} {column}"
+
+
+def test_multivalued_cells_split_back_into_the_same_number_of_values(db: PtmDatabase, tmp_path) -> None:
+    """Splitting a cell on the separator must recover exactly the entry's values.
+
+    A count test rather than a spot check: under "; " this failed for 54 keyword
+    cells and 737 taxonomic-range cells on the bundled 2026_03 release.
+    """
+    out = tmp_path / "ptm.tsv"
+    write_tsv(db, out)
+    rows = {row["id"]: row for row in _read_dict(out)}
+    assert len(rows) == len(db)
+    for entry in db:
+        row = rows[entry.accession]
+        expected_ranges = [_format_taxonomic_range(t) for t in entry.taxonomic_ranges]
+        for column, expected in (("keywords", list(entry.keywords)), ("taxonomic_ranges", expected_ranges)):
+            recovered = row[column].split(_SUB_DELIM) if row[column] else []
+            assert recovered == expected, f"{entry.accession} {column}: {recovered} != {expected}"
+
+
+def test_no_entry_has_two_cross_references_in_one_database(db: PtmDatabase) -> None:
+    """Guard for the last-wins dict in ``to_row``, which keeps one accession per database.
+
+    One ``xref_<db>`` column per database is only lossless while no entry carries two
+    cross-references in the same database. The bundled release has 1580 cross-references
+    and 1580 distinct (entry, database) pairs, so this is true by data, not by
+    construction. If a future release breaks it, fail here rather than silently drop an
+    accession from the export.
+    """
+    offenders = {}
+    for entry in db:
+        databases = [xr.database for xr in entry.cross_references]
+        duplicated = {d for d in databases if databases.count(d) > 1}
+        if duplicated:
+            offenders[entry.accession] = sorted(duplicated)
+    assert offenders == {}, f"entries with two cross-references in one database: {offenders}"

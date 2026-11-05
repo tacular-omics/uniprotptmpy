@@ -24,7 +24,12 @@ _FIXED_PREFIX: tuple[str, ...] = (
 )
 _FIXED_SUFFIX: tuple[str, ...] = ("taxonomic_ranges",)
 
-_SUB_DELIM = "; "
+#: Separator for multi-valued cells (keywords, taxonomic ranges). It must not occur
+#: inside the values themselves, or a consumer cannot split the cell back into values.
+#: "; " cannot be used: UniProt writes taxonomic ranges as "Archaea; taxId:2157
+#: (Archaea)" and 54 keyword values contain "; " too. No value in the bundled release
+#: contains "|". psimodpy uses the same separator for the same reason.
+_SUB_DELIM = " | "
 
 
 def _xref_column(database: str) -> str:

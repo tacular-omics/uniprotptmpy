@@ -4,6 +4,18 @@
 
 ### Fixed
 
+- `write_tsv`: multi-valued cells are separated by `" | "` instead of `"; "`, which could
+  not be split back into values because the values contain `"; "` themselves. UniProt
+  writes a taxonomic range as `Archaea; taxId:2157 (Archaea)`, so on the bundled 2026_03
+  release all 1021 range values contain the old separator, and so do 54 of the 558 keyword
+  values. Splitting the emitted cell on `"; "` therefore recovered the wrong number of
+  values for **every one** of the 737 non-empty `taxonomic_ranges` cells, and for 54 of the
+  557 non-empty `keywords` cells. No
+  value in the release contains `"|"`. **This changes the output of `write_tsv` and the
+  bundled `data/ptmlist.tsv`**, which has been regenerated: 198 of its 750 rows change,
+  and only in those two columns. Consumers splitting on `"; "` must change to `" | "`.
+  psimodpy uses the same separator for the same reason.
+
 - `server` extra: `uvicorn>=0.30` could not be installed on any platform but emscripten.
   mcp requires `uvicorn>=0.31.1; sys_platform != "emscripten"`, so off emscripten no
   resolution of the extra contained a 0.30.x, and `--resolution lowest-direct` silently
@@ -15,6 +27,12 @@
 
 ### Changed
 
+- Tests only, no behaviour change: `write_tsv` keeps one `xref_<database>` column per
+  database and builds it from a last-wins dict, so an entry carrying two cross-references
+  in the same database would silently lose one. The bundled release has 1580
+  cross-references and 1580 distinct (entry, database) pairs, so nothing is lost today;
+  that is a fact about the data, not the code. A new test fails if a future release breaks
+  it, instead of the export quietly dropping an accession. The column shape is unchanged.
 - `server` extra: lowered the remaining floors to `fastapi>=0.110.1` (was `>=0.115`) and
   `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). Both are reachable and tested: with `uvicorn`, `mcp`
   and `pydantic` pinned at their own floors, fastapi 0.110.1 installs and the whole server
