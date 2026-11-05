@@ -954,6 +954,15 @@ wheels = [
 ]
 
 [[package]]
+name = "tacular"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/0f/8095f57d1aea8e50c9e076b8aa9251acce53c57ea748155ef46450079fec/tacular-2.0.2.tar.gz", hash = "sha256:c185999e75db6099b3778058baf32bc38d03f29f7db5c9b0da77fd1da9741cdc", size = 600784, upload-time = "2026-10-28T02:18:29.675Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/6a/0d370adc6a7e72c999009dd89274bad26c5f4a4591e4a02347e37975b93a/tacular-2.0.2-py3-none-any.whl", hash = "sha256:79b194fa9b1a667e4dee3ed93a4b16cc860e8003ac56101bb92890031145b211", size = 443433, upload-time = "2026-10-28T02:18:28.067Z" },
+]
+
+[[package]]
 name = "truststore"
 version = "0.10.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1040,6 +1049,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "tacular" },
     { name = "ty" },
 ]
 
@@ -1061,6 +1071,7 @@ dev = [
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.16.8" },
+    { name = "tacular", specifier = ">=2.0,<3" },
     { name = "ty", specifier = ">=0.0.83" },
 ]
 

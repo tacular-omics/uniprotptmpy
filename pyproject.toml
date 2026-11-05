@@ -83,6 +83,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.16.8",
     "ty>=0.0.83",
+    "tacular>=2.0,<3",  # tests/test_data_agreement.py only; never a runtime dependency
 ]
 
 [tool.ruff]
