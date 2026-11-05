@@ -4,6 +4,20 @@
 
 ### Fixed
 
+- `search_mass`: passing `position` could *add* hits instead of removing them. A terminus
+  slot (`sites` containing `"N-term"`/`"C-term"`, meaning the terminus itself, any residue)
+  matched a residue query only when `position` named that terminus, so `position=None` -
+  the least-constrained query - was the narrowest one. `position=None` now leaves both
+  termini open and `position="anywhere"` closes both, which makes adding `position` only
+  ever remove matches. **No behaviour change for this package's bundled data:** UniProt
+  states the residue in `TG` and the polypeptide position in `PP`, so a terminus only ever
+  reaches a slot's `where`, never its `sites`, and the corrected clause never fires. 0 of
+  917 slots in the 2026_03 release carry a terminus name; 0 of 1200 swept queries widened
+  before the fix and 0 of 3240 query result sets changed across it. `tests/test_position_narrows.py`
+  is the guard that keeps it a no-op, and unit-tests the clause directly because the bundled
+  data cannot reach it. Found by unimodpy, where the same `_mass.py` does change behaviour;
+  psimodpy, unimodpy and uniprotptmpy apply the same bytes.
+
 - `write_tsv`: multi-valued cells are separated by `" | "` instead of `"; "`, which could
   not be split back into values because the values contain `"; "` themselves. UniProt
   writes a taxonomic range as `Archaea; taxId:2157 (Archaea)`, so on the bundled 2026_03
