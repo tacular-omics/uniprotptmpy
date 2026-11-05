@@ -1,6 +1,7 @@
 import csv
+from importlib.resources import as_file, files
 
-from uniprotptmpy import PtmDatabase, write_tsv
+from uniprotptmpy import PtmDatabase, parse_ptm_list, write_tsv
 from uniprotptmpy._tabular import _SUB_DELIM, _format_taxonomic_range, build_columns
 
 
@@ -210,3 +211,28 @@ def test_no_entry_has_two_cross_references_in_one_database(db: PtmDatabase) -> N
         if duplicated:
             offenders[entry.accession] = sorted(duplicated)
     assert offenders == {}, f"entries with two cross-references in one database: {offenders}"
+
+
+def test_bundled_tsv_is_exactly_a_fresh_export_of_the_bundled_ptmlist(tmp_path) -> None:
+    """``data/ptmlist.tsv`` must equal ``write_tsv`` of ``data/ptmlist.txt``, byte for byte.
+
+    The separator defect shipped in that artifact because nothing compared it to its source:
+    it is bundled, nothing reads it and no script regenerates it, so it went stale silently and
+    a release carried the wrong separator. Asserting the artifact against a fresh export is what
+    makes a stale copy a test failure instead of a shipped defect. Found and first measured by
+    psimodpy, which exported a fresh TSV independently and matched the header and 750 of 750 rows.
+    """
+    committed = files("uniprotptmpy") / "data" / "ptmlist.tsv"
+    fresh = tmp_path / "fresh.tsv"
+    with as_file(files("uniprotptmpy") / "data" / "ptmlist.txt") as source:
+        write_tsv(parse_ptm_list(source), fresh)
+
+    expected = committed.read_text(encoding="utf-8").splitlines()
+    actual = fresh.read_text(encoding="utf-8").splitlines()
+    assert actual[0] == expected[0], "header differs"
+    assert len(actual) == len(expected), f"{len(actual)} rows exported, {len(expected)} committed"
+    differing = [i for i, (a, e) in enumerate(zip(actual, expected, strict=True)) if a != e]
+    assert differing == [], (
+        f"{len(differing)} of {len(expected) - 1} rows differ from a fresh export; "
+        f"regenerate with load().write_tsv(). First at line {differing[0] + 1 if differing else 0}"
+    )

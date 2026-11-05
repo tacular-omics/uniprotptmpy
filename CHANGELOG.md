@@ -41,6 +41,14 @@
 
 ### Changed
 
+- Tests only, no behaviour change: `data/ptmlist.tsv` is asserted to equal a fresh
+  `write_tsv` of `data/ptmlist.txt`, byte for byte. That artifact is bundled, nothing reads
+  it and no script regenerates it, which is exactly how it shipped with the wrong separator:
+  nothing compared it to its source. A stale copy is now a test failure naming the first
+  differing line, rather than a shipped defect. Reverting the file to its pre-fix state
+  reports 198 of 750 rows differing; a single changed cell reports 1 of 750 at that line.
+  Found and first measured by psimodpy, which exported a fresh TSV independently and matched
+  the header and 750 of 750 rows.
 - Tests only, no behaviour change: `write_tsv` keeps one `xref_<database>` column per
   database and builds it from a last-wins dict, so an entry carrying two cross-references
   in the same database would silently lose one. The bundled release has 1580
