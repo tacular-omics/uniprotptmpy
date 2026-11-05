@@ -236,3 +236,24 @@ def test_bundled_tsv_is_exactly_a_fresh_export_of_the_bundled_ptmlist(tmp_path) 
         f"{len(differing)} of {len(expected) - 1} rows differ from a fresh export; "
         f"regenerate with load().write_tsv(). First at line {differing[0] + 1 if differing else 0}"
     )
+
+
+def test_exported_multivalue_parts_equal_parsed_parts(db: PtmDatabase, tmp_path) -> None:
+    """Splitting the whole export recovers as many parts as the parser produced, column by column.
+
+    The separator is only correct while no value contains it. ``test_bundled_tsv_...`` catches a
+    stale artifact but not that, because a value carrying ``" | "`` would shred identically on
+    both sides. This counts instead: 1021 taxonomic-range parts and 558 keyword parts in the
+    bundled 2026_03 release, and a value containing the separator makes the export yield more
+    than the parser did. Asserted against the parsed total rather than against a number written
+    down here, so a UniProt update moves both sides and this does not go stale. Asked for by
+    psimodpy, whose #65 asserts the same for synonyms.
+    """
+    path = write_tsv(db, tmp_path / "counts.tsv")
+    rows = _read_dict(path)
+    for column, parsed in (
+        ("taxonomic_ranges", sum(len(e.taxonomic_ranges) for e in db)),
+        ("keywords", sum(len(e.keywords) for e in db)),
+    ):
+        exported = sum(len(row[column].split(_SUB_DELIM)) for row in rows if row[column])
+        assert exported == parsed, f"{column}: export yields {exported} parts, parser produced {parsed}"

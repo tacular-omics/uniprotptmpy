@@ -41,6 +41,23 @@
 
 ### Changed
 
+- **Data format:** `write_tsv` separates multi-valued cells with `" | "` instead of `"; "`,
+  and the bundled `data/ptmlist.tsv` has been regenerated, so 198 of its 750 rows change in
+  the `taxonomic_ranges` and `keywords` columns. This is listed under Fixed as well, because
+  the old separator could not be split back; it is listed here because the bytes of a file
+  shipped on PyPI change and a reader should not have to infer that from a Fixed bullet. Not
+  breaking: no consumer splitting those columns on `"; "` could have been getting correct
+  values, since 1021 of 1021 range values and 54 of 558 keyword values contain `"; "`
+  themselves. Consumers must split on `" | "`. `peff_uniprot_fetcher` and `peff_digest` are
+  downstream and worth checking.
+- Tests only, no behaviour change: the export's round-trip part counts are asserted against
+  the parser's, column by column: 1021 taxonomic-range parts and 558 keyword parts in the
+  bundled release. The committed-equals-fresh test above catches a stale artifact but not a
+  future value that itself contains `" | "`, because both sides would shred it identically;
+  this catches that, and is asserted against the parsed total rather than a number written
+  down here so a UniProt update moves both sides. Under the old `"; "` it reports
+  `taxonomic_ranges: export yields 2042 parts, parser produced 1021`. Asked for by psimodpy,
+  whose #65 asserts the same for synonyms.
 - Tests only, no behaviour change: `data/ptmlist.tsv` is asserted to equal a fresh
   `write_tsv` of `data/ptmlist.txt`, byte for byte. That artifact is bundled, nothing reads
   it and no script regenerates it, which is exactly how it shipped with the wrong separator:
