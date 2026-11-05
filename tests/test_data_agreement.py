@@ -10,14 +10,22 @@ that have a correction formula and are not crosslinks, because a crosslink's val
 compound. Keeping that an equality means a future entry dropped from either side fails
 here instead of passing as "out of scope".
 
-Skipped when tacular is not installed (it is a dev-only dependency, never a runtime one).
-``tests/test_pyproject.py`` asserts the dev group still declares it, so this module cannot
-become a permanent silent skip by someone removing the dependency.
+Skipped when tacular is not installed (it is a dev-only dependency, never a runtime one),
+unless ``TACULAR_REQUIRE_SIBLINGS=1`` is set, which turns the absence into a failure. That
+is the same switch tacular honours, so a release gate exporting it once makes both sides
+loud. Set it wherever a suite must not pass without having cross-checked the bundled data;
+the wheel gate of the release checklist installs nothing from the dev groups, so without it
+these tests vanish from that run rather than failing it.
+
+``tests/test_pyproject.py`` asserts the dev group still declares tacular, so this module
+cannot become a permanent silent skip by someone removing the dependency.
 """
 
 from __future__ import annotations
 
+import importlib
 import math
+import os
 import re
 from importlib.resources import files
 
@@ -34,13 +42,55 @@ COMPOUND_FEATURE_TYPE = FeatureType.CROSSLNK
 _RELEASE = re.compile(r"^Release:\s+(?P<release>.+?)\s*$", re.MULTILINE)
 
 
+#: Set by a release gate to assert the cross-check actually ran. Same name as tacular's.
+REQUIRE_SIBLINGS = "TACULAR_REQUIRE_SIBLINGS"
+
+_INSTALL_HINT = "tacular is a dev-only dependency of uniprotptmpy; install the dev group to run the agreement tests"
+
+
+def _import_sibling(name: str):
+    """Import a dev-only sibling, skipping the test if it is absent, or failing under the gate.
+
+    A skip is right for an ordinary environment without the dev group, but an environment
+    setting ``TACULAR_REQUIRE_SIBLINGS=1`` is claiming to be a release gate, where a skip
+    would pass a suite that never cross-checked the bundled data.
+    """
+    if os.environ.get(REQUIRE_SIBLINGS) == "1":
+        try:
+            return importlib.import_module(name)
+        except ModuleNotFoundError as exc:
+            pytest.fail(
+                f"{REQUIRE_SIBLINGS}=1 but {name} is not installed, so the "
+                f"UniProt-PTM data agreement tests cannot run ({exc})"
+            )
+    return pytest.importorskip(name, reason=_INSTALL_HINT)
+
+
+def test_require_siblings_turns_a_missing_sibling_into_a_failure(monkeypatch):
+    """The gate must fail on absence, and an ordinary run must still skip.
+
+    The first half catches ``Skipped`` by hand instead of letting it propagate. A broken
+    gate makes ``_import_sibling`` fall through to ``importorskip``, and an escaped
+    ``Skipped`` is reported as a skip, so this test would announce the gate's own failure
+    as a green suite at exit 0 - the collected total unchanged, only the pass count moving.
+    Measured by mutating the gate to read ``"0"``: 5 passed, 1 skipped, exit 0 before this,
+    1 failed after.
+    """
+    absent = "uniprotptmpy_nonexistent_sibling"
+    monkeypatch.setenv(REQUIRE_SIBLINGS, "1")
+    try:
+        with pytest.raises(pytest.fail.Exception, match="not installed"):
+            _import_sibling(absent)
+    except pytest.skip.Exception as exc:
+        pytest.fail(f"{REQUIRE_SIBLINGS}=1 skipped instead of failing, so the gate is dead: {exc}")
+    monkeypatch.delenv(REQUIRE_SIBLINGS)
+    with pytest.raises(pytest.skip.Exception):
+        _import_sibling(absent)
+
+
 @pytest.fixture(scope="module")
 def lookup():
-    tacular = pytest.importorskip(
-        "tacular",
-        reason="tacular is a dev-only dependency of uniprotptmpy; install the dev group to run the agreement tests",
-    )
-    return tacular.UNIPROT_PTM_LOOKUP
+    return _import_sibling("tacular").UNIPROT_PTM_LOOKUP
 
 
 @pytest.fixture(scope="module")
