@@ -50,6 +50,16 @@
   values, since 1021 of 1021 range values and 54 of 558 keyword values contain `"; "`
   themselves. Consumers must split on `" | "`. `peff_uniprot_fetcher` and `peff_digest` are
   downstream and worth checking.
+- Tests only, no behaviour change: the two guards above name their columns by hand, so a
+  third multi-valued column would be exported unchecked and nothing would say so. Two
+  assertions close that: the set of tuple-typed `PtmEntry` fields must equal the joined set
+  (`keywords`, `taxonomic_ranges`) plus the deliberately exempt one (`cross_references`,
+  one `xref_<database>` column each), and no column outside the joined set may carry `" | "`
+  in a real export. Adding a fourth tuple field fails the first; joining a third cell fails
+  the second. The second is a subset and not an equality on purpose: only 1 entry in the
+  bundled release has more than one keyword, against 197 with more than one taxonomic
+  range, so equality would fail on a release that left every entry one keyword, which is
+  not a defect.
 - Tests only, no behaviour change: the export's round-trip part counts are asserted against
   the parser's, column by column: 1021 taxonomic-range parts and 558 keyword parts in the
   bundled release. The committed-equals-fresh test above catches a stale artifact but not a

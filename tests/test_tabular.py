@@ -1,7 +1,8 @@
 import csv
+import dataclasses
 from importlib.resources import as_file, files
 
-from uniprotptmpy import PtmDatabase, parse_ptm_list, write_tsv
+from uniprotptmpy import PtmDatabase, PtmEntry, parse_ptm_list, write_tsv
 from uniprotptmpy._tabular import _SUB_DELIM, _format_taxonomic_range, build_columns
 
 
@@ -257,3 +258,42 @@ def test_exported_multivalue_parts_equal_parsed_parts(db: PtmDatabase, tmp_path)
     ):
         exported = sum(len(row[column].split(_SUB_DELIM)) for row in rows if row[column])
         assert exported == parsed, f"{column}: export yields {exported} parts, parser produced {parsed}"
+
+
+# Fields exported as one ``_SUB_DELIM``-joined cell, and therefore covered by the
+# delimiter and round-trip guards above.
+_JOINED_FIELDS = frozenset({"keywords", "taxonomic_ranges"})
+# Multi-valued fields deliberately exported some other way. ``cross_references`` gets one
+# ``xref_<database>`` column each, guarded by its own last-wins test.
+_UNJOINED_FIELDS = frozenset({"cross_references"})
+
+
+def test_every_multivalued_field_is_joined_or_deliberately_exempt() -> None:
+    """A new multi-valued field must not escape the delimiter guards by being added quietly.
+
+    The guards above name their two columns by hand, so their scope cannot grow with the
+    code: a third joined column would be exported unchecked and nothing would say so. This
+    fails instead, forcing the choice between joining it (and adding it to ``_JOINED_FIELDS``,
+    which puts it under those guards) and exporting it some other way (and saying so in
+    ``_UNJOINED_FIELDS``).
+    """
+    multivalued = {f.name for f in dataclasses.fields(PtmEntry) if str(f.type).startswith("tuple[")}
+    assert multivalued == _JOINED_FIELDS | _UNJOINED_FIELDS, (
+        f"multi-valued fields are {sorted(multivalued)}; "
+        f"joined {sorted(_JOINED_FIELDS)} plus exempt {sorted(_UNJOINED_FIELDS)}. "
+        "Add the new field to one of the two sets."
+    )
+
+
+def test_no_column_outside_the_joined_set_carries_the_separator(db: PtmDatabase, tmp_path) -> None:
+    """The field-level set above, checked against a real export rather than against the source.
+
+    A subset and not an equality: in the bundled release 197 entries have more than one
+    taxonomic range but only 1 has more than one keyword, so equality would fail the day a
+    UniProt update left every entry with a single keyword, which is not a defect. What is a
+    defect is any other column carrying the separator, and that is what this forbids.
+    """
+    path = write_tsv(db, tmp_path / "columns.tsv")
+    carrying = {column for row in _read_dict(path) for column, cell in row.items() if cell and _SUB_DELIM in cell}
+    escaped = sorted(carrying - _JOINED_FIELDS)
+    assert not escaped, f"columns outside {sorted(_JOINED_FIELDS)} carry {_SUB_DELIM!r}: {escaped}"
