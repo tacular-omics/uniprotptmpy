@@ -1,4 +1,4 @@
-"""Packaging metadata: the sibling pin policy for the ``link`` extra.
+"""Packaging metadata: the sibling pin policy for the ``link`` extra and the dev group.
 
 Deliberately imports nothing optional, so it runs in a plain install and in the
 isolated job, which is where a miswritten pin would reach a user.
@@ -46,3 +46,29 @@ def test_link_extra_pins_both_siblings_with_a_cap() -> None:
         else:
             expected = (0, (floor[1] if len(floor) > 1 else 0) + 1)
         assert cap[: len(expected)] == expected, f"{name}: cap {cap} does not cap at {expected}"
+
+
+def test_dev_group_declares_tacular_for_the_agreement_tests() -> None:
+    """``tests/test_data_agreement.py`` skips without tacular, so the declaration is load-bearing.
+
+    Without this, removing tacular from the dev group would turn the agreement tests into a
+    permanent silent skip rather than a failure, which is how a data drift would reach a release.
+    """
+    pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    requirements = [
+        requirement
+        for requirement in pyproject["dependency-groups"]["dev"]
+        if re.match(r"^tacular\b", requirement.strip())
+    ]
+    assert len(requirements) == 1, f"the dev group must declare tacular exactly once, got {requirements}"
+
+    specifiers = _pins(requirements)["tacular"]
+    assert set(specifiers) == {">=", "<"}, f"tacular needs a >= floor and a < cap, got {sorted(specifiers)}"
+    assert specifiers[">="] < specifiers["<"]
+
+    # tacular must not be a runtime or extra dependency: the agreement tests are the only use.
+    assert "tacular" not in " ".join(pyproject["project"].get("dependencies", []))
+    for extra, pins in pyproject["project"].get("optional-dependencies", {}).items():
+        assert not any(re.match(r"^tacular\b", pin.strip()) for pin in pins), (
+            f"tacular must stay dev-only, found it in the {extra} extra"
+        )
