@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.2.0] (2026-11-06)
+
 ### Fixed
 
 - `search_mass`: passing `position` could *add* hits instead of removing them. A terminus
