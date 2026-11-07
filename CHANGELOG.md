@@ -4,6 +4,32 @@
 
 ### Fixed
 
+- `search_mass`: passing `position` could *add* hits instead of removing them. A terminus
+  slot (`sites` containing `"N-term"`/`"C-term"`, meaning the terminus itself, any residue)
+  matched a residue query only when `position` named that terminus, so `position=None` -
+  the least-constrained query - was the narrowest one. `position=None` now leaves both
+  termini open and `position="anywhere"` closes both, which makes adding `position` only
+  ever remove matches. **No behaviour change for this package's bundled data:** UniProt
+  states the residue in `TG` and the polypeptide position in `PP`, so a terminus only ever
+  reaches a slot's `where`, never its `sites`, and the corrected clause never fires. 0 of
+  917 slots in the 2026_03 release carry a terminus name; 0 of 1200 swept queries widened
+  before the fix and 0 of 3240 query result sets changed across it. `tests/test_position_narrows.py`
+  is the guard that keeps it a no-op, and unit-tests the clause directly because the bundled
+  data cannot reach it. Found by unimodpy, where the same `_mass.py` does change behaviour;
+  psimodpy, unimodpy and uniprotptmpy apply the same bytes.
+
+- `write_tsv`: multi-valued cells are separated by `" | "` instead of `"; "`, which could
+  not be split back into values because the values contain `"; "` themselves. UniProt
+  writes a taxonomic range as `Archaea; taxId:2157 (Archaea)`, so on the bundled 2026_03
+  release all 1021 range values contain the old separator, and so do 54 of the 558 keyword
+  values. Splitting the emitted cell on `"; "` therefore recovered the wrong number of
+  values for **every one** of the 737 non-empty `taxonomic_ranges` cells, and for 54 of the
+  557 non-empty `keywords` cells. No
+  value in the release contains `"|"`. **This changes the output of `write_tsv` and the
+  bundled `data/ptmlist.tsv`**, which has been regenerated: 198 of its 750 rows change,
+  and only in those two columns. Consumers splitting on `"; "` must change to `" | "`.
+  psimodpy uses the same separator for the same reason.
+
 - `server` extra: `uvicorn>=0.30` could not be installed on any platform but emscripten.
   mcp requires `uvicorn>=0.31.1; sys_platform != "emscripten"`, so off emscripten no
   resolution of the extra contained a 0.30.x, and `--resolution lowest-direct` silently
@@ -15,6 +41,37 @@
 
 ### Changed
 
+- **Data format:** `write_tsv` separates multi-valued cells with `" | "` instead of `"; "`,
+  and the bundled `data/ptmlist.tsv` has been regenerated, so 198 of its 750 rows change in
+  the `taxonomic_ranges` and `keywords` columns. This is listed under Fixed as well, because
+  the old separator could not be split back; it is listed here because the bytes of a file
+  shipped on PyPI change and a reader should not have to infer that from a Fixed bullet. Not
+  breaking: no consumer splitting those columns on `"; "` could have been getting correct
+  values, since 1021 of 1021 range values and 54 of 558 keyword values contain `"; "`
+  themselves. Consumers must split on `" | "`. `peff_uniprot_fetcher` and `peff_digest` are
+  downstream and worth checking.
+- Tests only, no behaviour change: the export's round-trip part counts are asserted against
+  the parser's, column by column: 1021 taxonomic-range parts and 558 keyword parts in the
+  bundled release. The committed-equals-fresh test above catches a stale artifact but not a
+  future value that itself contains `" | "`, because both sides would shred it identically;
+  this catches that, and is asserted against the parsed total rather than a number written
+  down here so a UniProt update moves both sides. Under the old `"; "` it reports
+  `taxonomic_ranges: export yields 2042 parts, parser produced 1021`. Asked for by psimodpy,
+  whose #65 asserts the same for synonyms.
+- Tests only, no behaviour change: `data/ptmlist.tsv` is asserted to equal a fresh
+  `write_tsv` of `data/ptmlist.txt`, byte for byte. That artifact is bundled, nothing reads
+  it and no script regenerates it, which is exactly how it shipped with the wrong separator:
+  nothing compared it to its source. A stale copy is now a test failure naming the first
+  differing line, rather than a shipped defect. Reverting the file to its pre-fix state
+  reports 198 of 750 rows differing; a single changed cell reports 1 of 750 at that line.
+  Found and first measured by psimodpy, which exported a fresh TSV independently and matched
+  the header and 750 of 750 rows.
+- Tests only, no behaviour change: `write_tsv` keeps one `xref_<database>` column per
+  database and builds it from a last-wins dict, so an entry carrying two cross-references
+  in the same database would silently lose one. The bundled release has 1580
+  cross-references and 1580 distinct (entry, database) pairs, so nothing is lost today;
+  that is a fact about the data, not the code. A new test fails if a future release breaks
+  it, instead of the export quietly dropping an accession. The column shape is unchanged.
 - `server` extra: lowered the remaining floors to `fastapi>=0.110.1` (was `>=0.115`) and
   `mcp>=2.0.0,<3` (was `>=2.1.1,<3`). Both are reachable and tested: with `uvicorn`, `mcp`
   and `pydantic` pinned at their own floors, fastapi 0.110.1 installs and the whole server
