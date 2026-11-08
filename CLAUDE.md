@@ -17,7 +17,7 @@ Sister vocabulary packages with the same shape: `unimodpy`, `psimodpy`.
 ## Commands
 
 ```bash
-just install        # uv sync
+just install        # uv sync --all-extras (server and link both included)
 just test           # uv run pytest tests            (106 tests, ~2 s, no network)
 just lint           # uv run ruff check src tests
 just format         # ruff isort fix + ruff format on src and tests
@@ -30,8 +30,8 @@ just check-version  # scripts/release_version.py check
 CI (`.github/workflows/ci.yml`) also runs `uv run ruff format --check src tests`,
 which `just check` does not. Run it before pushing.
 
-Server, locally (needs the extra: `uv sync --extra server`, or `pip install
-uniprotptmpy[server]`):
+Server, locally. The `server` extra is needed, and `just install` already includes it.
+Outside a dev checkout it is `pip install uniprotptmpy[server]`:
 
 ```bash
 uv run uvicorn uniprotptmpy.server.app:app --reload     # http://127.0.0.1:8000
