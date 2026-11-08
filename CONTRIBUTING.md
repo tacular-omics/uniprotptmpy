@@ -42,7 +42,7 @@ at all.
 `tests/test_data_agreement.py` is the fixture-scope case, and it guards a dev-group
 sibling rather than an extra, so `uv sync` does cover it. Set
 `TACULAR_REQUIRE_SIBLINGS=1` to make it fail instead of skip if that sibling is ever
-missing; the collected total is identical either way.
+missing. The collected total is identical either way.
 
 If you are changing either part, install the extras as well:
 
