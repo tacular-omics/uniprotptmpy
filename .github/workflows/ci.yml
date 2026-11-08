@@ -45,6 +45,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --all-extras --all-groups
       - run: uv run pytest tests
+        env:
+          UNIPROTPTMPY_EXPECT_EXTRAS: server,link
 
   # Proves the declared lower bounds still work: installs the oldest allowed
   # version of every direct dependency.
@@ -59,6 +61,8 @@ jobs:
       # --no-sync is required: a plain `uv run` re-resolves to the default (highest)
       # versions and silently undoes the lowest-direct sync above.
       - run: uv run --no-sync pytest tests
+        env:
+          UNIPROTPTMPY_EXPECT_EXTRAS: server,link
 
   package:
     runs-on: ubuntu-latest
@@ -92,6 +96,8 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked --all-extras --all-groups
       - run: uv run pytest tests --cov --cov-report=term-missing --cov-report=xml --junitxml=junit.xml -o junit_family=legacy
+        env:
+          UNIPROTPTMPY_EXPECT_EXTRAS: server,link
       - name: Upload coverage reports to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -117,3 +123,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uvx pre-commit run --all-files --show-diff-on-failure
+
+  # Package-specific: the environment `pip install uniprotptmpy` produces. The core
+  # package declares no runtime dependencies, and every job above installs --all-extras,
+  # so without this one nothing any developer or any job runs ever enters it.
+  no-extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+      # No --all-extras: the dev group only, which is what `uv sync` alone gives a
+      # contributor. --no-sync on the run, or uv re-resolves and undoes it.
+      - run: uv sync --locked --all-groups
+      - run: uv run --no-sync pytest tests
+        env:
+          UNIPROTPTMPY_EXPECT_EXTRAS: none
