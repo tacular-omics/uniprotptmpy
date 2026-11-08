@@ -18,7 +18,7 @@ Sister vocabulary packages with the same shape: `unimodpy`, `psimodpy`.
 
 ```bash
 just install        # uv sync --all-extras (server and link both included)
-just test           # uv run pytest tests            (106 tests, ~2 s, no network)
+just test           # uv run pytest tests            (~2 s, no network)
 just lint           # uv run ruff check src tests
 just format         # ruff isort fix + ruff format on src and tests
 just ty             # uv run ty check src
