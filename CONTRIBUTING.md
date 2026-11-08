@@ -18,6 +18,19 @@ just install
 
 `just --list` shows the other recipes.
 
+`just install` is `uv sync`, which installs the package and the dev group but not the
+two optional extras: `server` (the FastAPI app and the MCP server) and `link`
+(`entry.resolve("psimod")` and `entry.resolve("unimod")`, which need psimodpy and
+unimodpy). The tests for those parts then **skip at import rather than fail**, so a
+green summary says nothing about them. Measured on 2026-11-07 against 1.2.0:
+`uv sync` collects **282** of the suite's **326** tests, and the 44 it leaves out are
+all of `tests/test_links.py` and `tests/test_server.py`. If you are changing either
+part, install the extras as well:
+
+```bash
+uv sync --all-extras
+```
+
 Install the commit hooks once per clone with `uvx pre-commit install`. On every
 commit they run `ruff check`, `ruff format --check` and a few file checks
 (`uvx pre-commit run --all-files` runs them on everything). Type checks and
