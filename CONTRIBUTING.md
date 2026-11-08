@@ -18,22 +18,33 @@ just install
 
 `just --list` shows the other recipes.
 
-`just install` is `uv sync`, which installs the package and the dev group but not the
-two optional extras: `server` (the FastAPI app and the MCP server) and `link`
-(`entry.resolve("psimod")` and `entry.resolve("unimod")`, which need psimodpy and
-unimodpy). The tests for those parts then **skip at import rather than fail**, so a
-green summary says nothing about them. Measured on 2026-11-07 against 1.2.0:
+`just install` is `uv sync`, which installs the package and the dev group but **not**
+either optional extra:
 
-| install | collected | passed | skipped |
-|---|---|---|---|
-| `uv sync` (no extras) | 282 | 282 | 2 |
-| `uv sync --all-extras` | 326 | 326 | 0 |
+- `server` - the FastAPI app and the MCP server (`uniprotptmpy.server`), from fastapi,
+  uvicorn, mcp and pydantic.
+- `link` - `entry.resolve("psimod")` and `entry.resolve("unimod")`, from psimodpy and
+  unimodpy.
 
-`tests/test_links.py` and `tests/test_server.py` call `pytest.importorskip` at module
-scope, so each whole module is skipped as a single unit: those **2** skips stand for the
-**44** tests that were never collected. Read the collected total rather than the skip
-count, and note that `--collect-only` prints no skip line at all. If you are changing
-either part, install the extras as well:
+So a default install cannot exercise either part, and `tests/test_server.py` and
+`tests/test_links.py` **skip at import rather than fail**: a green summary from that
+install is no evidence that those parts work.
+
+To tell the two installs apart, read the **passed** count, and `uv pip list` to see what
+is actually installed. The pass count is the only one of pytest's three numbers that
+always moves in the right direction. Both of those modules call `pytest.importorskip` at
+**module** scope, so the collected total drops as well here - but it would not move at
+all for a gate inside a test or a fixture, as in `tests/test_data_agreement.py`, and the
+skip count is worth less than it looks either way, because a module skipped at import
+counts as **one** skip however many tests it hides. `--collect-only` prints no skip line
+at all.
+
+`tests/test_data_agreement.py` is the fixture-scope case, and it guards a dev-group
+sibling rather than an extra, so `uv sync` does cover it. Set
+`TACULAR_REQUIRE_SIBLINGS=1` to make it fail instead of skip if that sibling is ever
+missing; the collected total is identical either way.
+
+If you are changing either part, install the extras as well:
 
 ```bash
 uv sync --all-extras
