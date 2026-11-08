@@ -23,9 +23,17 @@ two optional extras: `server` (the FastAPI app and the MCP server) and `link`
 (`entry.resolve("psimod")` and `entry.resolve("unimod")`, which need psimodpy and
 unimodpy). The tests for those parts then **skip at import rather than fail**, so a
 green summary says nothing about them. Measured on 2026-11-07 against 1.2.0:
-`uv sync` collects **282** of the suite's **326** tests, and the 44 it leaves out are
-all of `tests/test_links.py` and `tests/test_server.py`. If you are changing either
-part, install the extras as well:
+
+| install | collected | passed | skipped |
+|---|---|---|---|
+| `uv sync` (no extras) | 282 | 282 | 2 |
+| `uv sync --all-extras` | 326 | 326 | 0 |
+
+`tests/test_links.py` and `tests/test_server.py` call `pytest.importorskip` at module
+scope, so each whole module is skipped as a single unit: those **2** skips stand for the
+**44** tests that were never collected. Read the collected total rather than the skip
+count, and note that `--collect-only` prints no skip line at all. If you are changing
+either part, install the extras as well:
 
 ```bash
 uv sync --all-extras
