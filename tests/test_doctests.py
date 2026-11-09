@@ -11,6 +11,7 @@ The fenced blocks in ``README.md`` are a different surface and nothing here runs
 
 from __future__ import annotations
 
+import ast
 import doctest
 import importlib
 import importlib.util
@@ -33,16 +34,23 @@ MIN_CORE_MODULES = 11
 MIN_SERVER_MODULES = 4
 MIN_EXAMPLES = 0
 
-# Nothing under `uniprotptmpy.server` can be imported without the `server` extra:
-# server/__init__.py imports server.app, which imports fastapi, mcp and pydantic at module
-# scope. So the subtree is excluded BY NAME, and only where that extra is absent -- which
-# is what CI's `no-extras` job installs. The test asks whether the EXTRA is installed, not
-# whether one chosen name is: an extra arrives as a whole dependency set, and keying the
-# question to a single name is how a partial environment (fastapi present, mcp absent)
-# produced a red test. `test_server_requires_is_exactly_the_declared_extra` keeps this
-# tuple equal to the pyproject, so adding a dependency to the extra cannot leave it short.
+# Nothing under `uniprotptmpy.server` can be imported without fastapi, mcp and pydantic:
+# server/__init__.py imports server.app, which imports all three at module scope. So the
+# subtree is excluded BY NAME, and only where one of those three cannot be located -- which
+# is what CI's `no-extras` job installs.
+#
+# The predicate is EVERY ROOT THE MODULES IMPORT AT MODULE SCOPE. That is neither one name
+# nor the declared extra, and the two wrong answers fail in opposite directions. One name is
+# how a partial environment (fastapi present, mcp absent) produced a red test: the gate did
+# not skip and the import blew up. The declared extra adds `uvicorn`, which the extra ships
+# and nothing imports (measured 2026-11-08: one occurrence in src, a shell command inside
+# server/__init__.py's docstring), so requiring it would skip a subtree that imports fine the
+# moment uvicorn alone is missing, and a real defect under server/ would go unrun with
+# nothing red. A tuple that is too short fails loudly on the import; a tuple that is too long
+# skips in silence, which is the worse half, so this one is pinned to the source by
+# `test_server_requires_is_every_module_scope_import_root`.
 SERVER = "uniprotptmpy.server"
-SERVER_REQUIRES = ("fastapi", "mcp", "pydantic", "uvicorn")
+SERVER_REQUIRES = ("fastapi", "mcp", "pydantic")
 
 
 def installed(distribution: str) -> bool:
@@ -53,14 +61,14 @@ def installed(distribution: str) -> bool:
         return False
 
 
-def server_extra_installed() -> bool:
-    """Whether the whole `server` extra is present, which is what its subtree needs."""
+def server_imports_available() -> bool:
+    """Whether every root the server subtree imports at module scope can be located."""
     return all(installed(distribution) for distribution in SERVER_REQUIRES)
 
 
 def unavailable(name: str) -> bool:
-    """Whether `name` is in the server subtree in an environment that lacks its extra."""
-    return (name == SERVER or name.startswith(f"{SERVER}.")) and not server_extra_installed()
+    """Whether `name` is in the server subtree in an environment that cannot import it."""
+    return (name == SERVER or name.startswith(f"{SERVER}.")) and not server_imports_available()
 
 
 def server_subtree_names() -> list[str]:
@@ -68,7 +76,7 @@ def server_subtree_names() -> list[str]:
 
     `pkgutil` never yields the children of a package it could not import, so without this
     the excluded modules would be invisible and the server floor could only be asserted
-    where the extra happens to be installed. That conditional floor is the defect this
+    where the imports happen to be installed. That conditional floor is the defect this
     replaces: it was keyed to one name, so a partial environment made it fire with nothing
     to count.
     """
@@ -130,12 +138,54 @@ def declared_server_extra() -> set[str]:
     return names
 
 
-def test_server_requires_is_exactly_the_declared_extra() -> None:
-    """The gate above must name the whole extra, which only the pyproject knows."""
-    assert set(SERVER_REQUIRES) == declared_server_extra(), (
-        f"SERVER_REQUIRES is {sorted(SERVER_REQUIRES)} but the `server` extra declares "
-        f"{sorted(declared_server_extra())}; an import name that differs from the "
-        f"distribution name has to be handled here on purpose, not by being left out"
+def server_import_roots() -> set[str]:
+    """Every third-party root the server modules import at module scope, read as source.
+
+    Read with `ast` rather than by importing, so this answers the same in the no-extras job
+    as everywhere else. Module scope means `tree.body` and not `ast.walk`: an import inside
+    `if TYPE_CHECKING:` or a `try` never runs at import time and so cannot stop the walk.
+    """
+    directory = Path(uniprotptmpy.__path__[0]) / "server"
+    paths = sorted(directory.glob("*.py"))
+    assert paths, f"no server modules to read under {directory}"
+    roots: set[str] = set()
+    for path in paths:
+        for node in ast.parse(path.read_text(encoding="utf-8")).body:
+            if isinstance(node, ast.Import):
+                roots.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                roots.add(node.module.split(".")[0])
+    return {root for root in roots if root != uniprotptmpy.__name__ and root not in sys.stdlib_module_names}
+
+
+def test_server_requires_is_every_module_scope_import_root() -> None:
+    """The gate must name exactly what stops the import, which only the source knows.
+
+    Equality in both directions, because the two errors are different bugs. A root missing
+    from the tuple makes the walk attempt an import that cannot succeed: loud. A root in the
+    tuple that nothing imports makes the walk skip a subtree that would have imported fine,
+    so a defect under `server/` goes unrun and nothing goes red: silent, and the reason
+    `uvicorn` is not in the tuple even though the `server` extra declares it.
+
+    A root whose import name differs from its distribution name has to be mapped here on
+    purpose rather than by being left out of one side.
+    """
+    assert set(SERVER_REQUIRES) == server_import_roots(), (
+        f"SERVER_REQUIRES is {sorted(SERVER_REQUIRES)} but the server modules import "
+        f"{sorted(server_import_roots())} at module scope"
+    )
+
+
+def test_server_requires_is_declared_by_the_server_extra() -> None:
+    """Every root the gate names must be installable, which only the pyproject knows.
+
+    Subset, not equality: a root no extra declares is a packaging bug, while a declared name
+    nothing imports is allowed and is exactly `uvicorn`.
+    """
+    assert set(SERVER_REQUIRES) <= declared_server_extra(), (
+        f"SERVER_REQUIRES is {sorted(SERVER_REQUIRES)} but the `server` extra declares only "
+        f"{sorted(declared_server_extra())}; a root the server modules import has to be "
+        f"declared by the extra that is supposed to supply it"
     )
 
 
@@ -143,7 +193,7 @@ def test_docstring_examples() -> None:
     modules = all_modules()
     names = [module.__name__ for module in modules]
     imported_server = [name for name in names if name == SERVER or name.startswith(f"{SERVER}.")]
-    excluded_server = [] if server_extra_installed() else server_subtree_names()
+    excluded_server = [] if server_imports_available() else server_subtree_names()
     core = [name for name in names if name not in imported_server]
     server = imported_server + excluded_server
     assert len(core) >= MIN_CORE_MODULES, f"the module walk found only {len(core)} core modules: {core}"
