@@ -41,14 +41,19 @@ MIN_EXAMPLES = 0
 #
 # The predicate is EVERY ROOT THE MODULES IMPORT AT MODULE SCOPE. That is neither one name
 # nor the declared extra, and the two wrong answers fail in opposite directions. One name is
-# how a partial environment (fastapi present, mcp absent) produced a red test: the gate did
-# not skip and the import blew up. The declared extra adds `uvicorn`, which the extra ships
-# and nothing imports (measured 2026-11-08: one occurrence in src, a shell command inside
-# server/__init__.py's docstring), so requiring it would skip a subtree that imports fine the
-# moment uvicorn alone is missing, and a real defect under server/ would go unrun with
-# nothing red. A tuple that is too short fails loudly on the import; a tuple that is too long
-# skips in silence, which is the worse half, so this one is pinned to the source by
-# `test_server_requires_is_every_module_scope_import_root`.
+# how a partial environment produced a red test: fastapi present and mcp absent is reachable,
+# the gate did not skip, and the import blew up. The declared extra is the other way round,
+# because it adds `uvicorn`, which the extra ships and nothing imports -- measured 2026-11-08,
+# one occurrence in src, a shell command inside server/__init__.py's docstring. Requiring it
+# buys nothing today: `mcp` itself requires `uvicorn>=0.31.1; sys_platform != 'emscripten'`,
+# so on every platform tested here mcp present implies uvicorn present, and that absence
+# cannot be produced by resolving the extra. What it costs is a silent skip the day that
+# changes -- the marker is already mcp treating uvicorn as optional on one platform, and a
+# protocol library dropping a server dependency is ordinary. Then uvicorn alone would be
+# missing, the gate would skip a subtree that imports fine, and a real defect under server/
+# would go unrun with nothing red. A tuple that is too short fails loudly on the import; a
+# tuple that is too long skips in silence, so this one is pinned to the source rather than to
+# the pyproject by `test_server_requires_is_every_module_scope_import_root`.
 SERVER = "uniprotptmpy.server"
 SERVER_REQUIRES = ("fastapi", "mcp", "pydantic")
 
