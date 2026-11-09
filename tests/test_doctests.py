@@ -53,7 +53,10 @@ MIN_EXAMPLES = 0
 # missing, the gate would skip a subtree that imports fine, and a real defect under server/
 # would go unrun with nothing red. A tuple that is too short fails loudly on the import; a
 # tuple that is too long skips in silence, so this one is pinned to the source rather than to
-# the pyproject by `test_server_requires_is_every_module_scope_import_root`.
+# the pyproject by `test_server_requires_is_every_module_scope_import_root`. The verdict it
+# produces is then checked against actually importing the subtree, by
+# `test_the_gate_agrees_with_actually_importing_the_subtree`, because every other assertion in
+# this file is downstream of that verdict and so cannot police it.
 SERVER = "uniprotptmpy.server"
 SERVER_REQUIRES = ("fastapi", "mcp", "pydantic")
 
@@ -191,6 +194,36 @@ def test_server_requires_is_declared_by_the_server_extra() -> None:
         f"SERVER_REQUIRES is {sorted(SERVER_REQUIRES)} but the `server` extra declares only "
         f"{sorted(declared_server_extra())}; a root the server modules import has to be "
         f"declared by the extra that is supposed to supply it"
+    )
+
+
+def test_the_gate_agrees_with_actually_importing_the_subtree() -> None:
+    """Check the gate against the only authority there is: trying the import.
+
+    Every other assertion in this file is downstream of the gate's verdict, so none of them
+    can police it. The floors cannot either: once the excluded names are read off the
+    filesystem, a correct skip and a wrong skip produce the SAME module count, which is the
+    whole reason a count is the wrong instrument here. This test does what the gate predicts
+    and compares, so it catches both lies. A gate that says not-importable while the subtree
+    imports fine is a silent skip of working code -- the shape `uvicorn` in `SERVER_REQUIRES`
+    would produce -- and a gate that says importable while an import fails is the walk dying
+    on exactly the import the skip was supposed to cover.
+
+    In-process on purpose: `tests/test_import_boundary.py` makes its sys.modules assertions
+    in `python -I` subprocesses, so importing the subtree here cannot reach them.
+    """
+    predicted = server_imports_available()
+    failures: dict[str, str] = {}
+    for name in server_subtree_names():
+        try:
+            importlib.import_module(name)
+        except ImportError as exc:
+            failures[name] = repr(exc)
+    assert predicted == (not failures), (
+        f"the gate resolved SERVER_REQUIRES={sorted(SERVER_REQUIRES)} to "
+        f"{'importable' if predicted else 'not importable'}, but importing "
+        f"{server_subtree_names()} {'failed' if failures else 'succeeded'}: "
+        f"{failures or 'every module imported'}"
     )
 
 
