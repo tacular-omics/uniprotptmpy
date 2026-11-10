@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- Add `db.get()` and membership checks to the README example and API table.
+
 ## [1.2.0] (2026-11-06)
 
 ### Fixed

@@ -72,6 +72,8 @@ print(entry.resolve("unimod")[0].name)     # Phospho
 
 # Dict-style access, iteration, and formula helpers
 entry = db["PTM-0450"]
+print(db.get("missing", "not found"))  # not found; default instead of KeyError
+print("phosphoserine" in db)            # True; accepts db[key] keys or a PtmEntry
 hydroxy = db.get_by_id("PTM-0476")
 print(hydroxy.correction_formula)  # O1
 print(hydroxy.dict_composition)    # {'O': 1}
@@ -141,6 +143,8 @@ claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 | `write_ptmlist(entries, path)` | Write entries back to UniProt ptmlist.txt flat-file format. |
 | `PtmDatabase` | Indexed collection with `get_by_id()`, `get_by_name()`, `search()`, `search_mass(delta, *, tolerance=0.01, tolerance_unit="da", site=None, position=None)` (`(entry, error)` pairs within `tolerance` Da), `get_by_site(residue)` (one residue), `write_tsv()`, `write_ptmlist()`, iteration, and `len()`. |
 | `PtmEntry` | Frozen dataclass with all PTM fields, plus `accession`, `dict_composition`, `proforma_formula` (`"HO3P"`), `psimod_ids` and `unimod_ids` properties; `get_mass(*, monoisotopic=True)` (UniProt's own mass or `None`); `resolve("psimod" \| "unimod")` returns the linked entries (needs the `[link]` extra). |
+| `db.get(key, default=None)` | `db[key]`, or `default` instead of `KeyError`. |
+| `key in db` | Test membership with any key accepted by `db[key]` (integer ID, accession, or name), or a `PtmEntry`. |
 | `UniprotPtmError`, `UniprotPtmParseError`, `UniprotPtmKeyError` | Package exceptions; the parse error is also a `ValueError`, and `UniprotPtmKeyError` (raised by `db[key]` on a miss) is also a `KeyError`. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
