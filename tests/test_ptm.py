@@ -3,6 +3,7 @@ import dataclasses
 import pytest
 
 from uniprotptmpy import FeatureType, PtmDatabase, parse_ptm_list
+from uniprotptmpy.parser import _parse_tr
 
 # --- Entry count ---
 
@@ -129,6 +130,30 @@ def test_taxonomic_range_description(db: PtmDatabase) -> None:
     assert e is not None
     tr = e.taxonomic_ranges[0]
     assert tr.description == "Archaea"
+
+
+def test_taxonomic_range_description_nested_parentheses(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0457")
+    assert e is not None
+    tr = e.taxonomic_ranges[0]
+    assert tr.description == "Methylocystis sp. (strain SB2)"
+    assert tr.raw.endswith("(strain SB2))")
+
+
+def test_taxonomic_range_descriptions_have_balanced_parentheses(db: PtmDatabase) -> None:
+    unbalanced = [
+        tr.description
+        for e in db
+        for tr in e.taxonomic_ranges
+        if tr.description.count("(") != tr.description.count(")")
+    ]
+    assert unbalanced == []
+
+
+def test_parse_tr_tracks_parenthesis_depth() -> None:
+    assert _parse_tr("Bacteria; taxId:1 (sp. (strain (A))).").description == "sp. (strain (A))"
+    assert _parse_tr("Bacteria; taxId:1").description == ""
+    assert _parse_tr("Bacteria; taxId:1 (unclosed").description == ""
 
 
 def test_single_keyword(db: PtmDatabase) -> None:
