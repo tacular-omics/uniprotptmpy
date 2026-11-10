@@ -31,6 +31,7 @@ name is read out of ``vercel.json``, the pyproject or the source.
 from __future__ import annotations
 
 import ast
+import glob as globlib
 import importlib
 import importlib.util
 import os
@@ -102,6 +103,24 @@ def include_globs() -> tuple[str, ...]:
     globs = (value,) if isinstance(value, str) else tuple(value)
     assert globs and all(isinstance(glob, str) for glob in globs), f"includeFiles is {value!r}"
     return globs
+
+
+def delivered_files() -> dict[str, list[Path]]:
+    """Each includeFiles glob and the files it puts in the function bundle.
+
+    `glob.glob(..., recursive=True)` and not `Path.glob`: pathlib's trailing `**` matched only
+    directories up to 3.12 and matches files as well from 3.13, so `docs/**` resolved to no
+    files at all on 3.12. Measured on PR #72, where `test (ubuntu-latest, 3.12)` and `lowest`
+    failed on exactly that while 3.13, 3.14 and the workspace venv all passed - the two
+    assertions below were reading the Python version rather than the deploy surface. Vercel's
+    own matcher counts files, which is what this one does on every version.
+    """
+    return {
+        pattern: sorted(
+            ROOT / name for name in globlib.glob(pattern, root_dir=ROOT, recursive=True) if (ROOT / name).is_file()
+        )
+        for pattern in include_globs()
+    }
 
 
 def module_source(dotted: str) -> Path | None:
@@ -286,8 +305,7 @@ def test_no_rule_in_vercel_json_can_swallow_every_path() -> None:
 
 
 def test_every_include_files_glob_matches_files_that_exist() -> None:
-    for glob in include_globs():
-        matched = sorted(path for path in ROOT.glob(glob) if path.is_file())
+    for glob, matched in delivered_files().items():
         assert matched, (
             f"includeFiles glob {glob!r} matches no file under {ROOT}, so the function bundle carries nothing for it"
         )
@@ -295,7 +313,7 @@ def test_every_include_files_glob_matches_files_that_exist() -> None:
 
 def test_the_files_the_app_reads_are_the_files_include_files_delivers() -> None:
     """Both directions: the glob has to deliver a real file, and it has to be the one the app reads."""
-    delivered = {path.resolve() for glob in include_globs() for path in ROOT.glob(glob) if path.is_file()}
+    delivered = {path.resolve() for matched in delivered_files().values() for path in matched}
     for name in RUNTIME_FILES:
         path = ROOT / name
         assert path.is_file(), f"the app reads {name} at run time and it does not exist"
