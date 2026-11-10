@@ -140,3 +140,34 @@ jobs:
       - run: uv run --no-sync pytest tests
         env:
           UNIPROTPTMPY_EXPECT_EXTRAS: none
+
+  # Package-specific: the Vercel deploy surface (vercel.json + api/index.py). Until this job
+  # existed, the only thing that had ever installed what vercel.json says to install, or
+  # imported the entry point, was a Vercel build - a third-party check row, optional in our
+  # merge gate, which a fork pull request cannot produce at all until the repository owner
+  # authorises that one pull request by hand. Nothing here talks to Vercel or to any
+  # deployment: it runs the same install locally. The environment comes from `installCommand`
+  # itself, with Vercel's no-installCommand default as the fallback, so deleting that line
+  # fails this job with the same ModuleNotFoundError it would serve as a 500 in production.
+  deploy-surface:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          python-version: "3.13"
+      - name: Install exactly what vercel.json's installCommand installs
+        run: |
+          uv venv
+          export VIRTUAL_ENV="$PWD/.venv"
+          command=$(python -c "import json; print(json.load(open('vercel.json')).get('installCommand', 'uv pip install .'))")
+          echo "installCommand: $command"
+          eval "$command"
+          uv pip install pytest
+      # No --all-extras anywhere above, so UNIPROTPTMPY_EXPECT_EXTRAS does not apply and this
+      # job runs one module rather than the suite. REQUIRE_DEPLOY_SURFACE is what makes a
+      # missing import a failure here instead of the skip it has to stay elsewhere.
+      - name: Import api/index.py and check the files vercel.json promises
+        run: .venv/bin/python -m pytest -q tests/test_deploy_surface.py
+        env:
+          UNIPROTPTMPY_REQUIRE_DEPLOY_SURFACE: "1"

@@ -24,6 +24,15 @@ ROOT = Path(__file__).parents[1]
 # The jobs in ci.yml that run the suite. An equality, so adding or removing one fails
 # here rather than quietly leaving a job unchecked.
 SUITE_JOBS = {"test", "lowest", "coverage", "no-extras"}
+# Jobs that run pytest on PART of the suite. `deploy-surface` builds its environment from
+# vercel.json's installCommand rather than from a `uv sync`, so it installs one extra and no
+# dev group: the equality below cannot hold there and does not apply to it. Its own
+# UNIPROTPTMPY_REQUIRE_DEPLOY_SURFACE gate is what keeps it from skipping in silence. An
+# equality here too, so a new partial run cannot slip past the check above by naming a path.
+PARTIAL_SUITE_JOBS = {"deploy-surface"}
+# The pytest target, so a job is classified by WHAT it runs. A substring test for "pytest
+# tests" called `pytest -q tests/test_x.py` a full-suite run only by the accident of the `-q`.
+PYTEST_TARGET = re.compile(r"pytest\b[^\n]*?(?<![\w/.-])(?P<target>tests(?:/\S*)?)")
 
 
 def extra_requirements() -> dict[str, set[str]]:
@@ -93,8 +102,11 @@ def test_the_installed_extras_are_exactly_the_declared_ones() -> None:
 
 def test_every_job_that_runs_the_suite_declares_the_extras_it_installed() -> None:
     jobs = ci_jobs()
-    running = {name: body for name, body in jobs.items() if "pytest tests" in body}
-    assert set(running) == SUITE_JOBS, f"ci.yml runs the suite in {sorted(running)}"
+    targets = {name: {m["target"] for m in PYTEST_TARGET.finditer(body)} for name, body in jobs.items()}
+    running = {name: jobs[name] for name, found in targets.items() if "tests" in found}
+    partial = {name for name, found in targets.items() if found and "tests" not in found}
+    assert set(running) == SUITE_JOBS, f"ci.yml runs the whole suite in {sorted(running)}"
+    assert partial == PARTIAL_SUITE_JOBS, f"ci.yml runs part of the suite in {sorted(partial)}"
     for name, body in sorted(running.items()):
         found = re.search(rf"{EXPECT_EXTRAS}: *(?P<value>\S+)", body)
         assert found is not None, f"job {name!r} runs the suite without declaring {EXPECT_EXTRAS}"
