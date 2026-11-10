@@ -153,9 +153,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # 3.12 because that is the interpreter the deploy actually uses, and it is the
+      # requires-python floor rather than the newest Python this repository tests. Measured on
+      # the production deployment dpl_CRMj6rop5KTMjhvpmZRcELz7anqW (commit b5be642): the Vercel
+      # build log says "Using Python 3.12 from pyproject.toml", "Writing .python-version file
+      # with version 3.12", then "Using Python 3.12.15 environment at: .vercel/python/.venv".
+      # Pinned here and asserted against the pyproject by
+      # `test_the_job_builds_on_the_python_vercel_picks`, so a requires-python bump cannot leave
+      # this job behind on the old interpreter in silence.
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          python-version: "3.13"
+          python-version: "3.12"
       - name: Install exactly what vercel.json's installCommand installs
         run: |
           uv venv

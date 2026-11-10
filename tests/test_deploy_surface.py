@@ -412,3 +412,66 @@ def test_ci_runs_this_module_with_the_gate_set() -> None:
         f"absent, because that is what Vercel itself does and what makes a deleted "
         f"installCommand fail here rather than pass"
     )
+
+
+def requires_python_floor() -> str:
+    """The lowest Python the pyproject allows, which is the interpreter the deploy runs on.
+
+    Vercel's Python runtime takes the version from the pyproject rather than from whatever the
+    repository tests newest. Measured on the production deployment of this repo,
+    dpl_CRMj6rop5KTMjhvpmZRcELz7anqW (commit b5be642): the build log reads "Using Python 3.12
+    from pyproject.toml", "Writing .python-version file with version 3.12", then "Using Python
+    3.12.15 environment at: .vercel/python/.venv", with uv 0.13.5.
+
+    A single ``>=`` clause or nothing: a specifier this cannot read fails here rather than
+    letting the pin it is compared against go unchecked.
+    """
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    specifier = pyproject["project"]["requires-python"]
+    matched = re.fullmatch(r">=\s*(?P<floor>\d+\.\d+)(?:\.\d+)?", specifier.strip())
+    assert matched is not None, (
+        f"requires-python is {specifier!r} and this parser reads only a single `>=` floor, so it "
+        f"cannot say which Python Vercel would pick; teach it rather than skipping the check"
+    )
+    return matched["floor"]
+
+
+def job_python_version(name: str) -> str:
+    """The one ``python-version:`` a job declares, read as text out of ci.yml."""
+    body = ci_job_body(name)
+    found = re.findall(r'^\s*python-version:\s*"?([^"\s]+)"?\s*$', body, flags=re.MULTILINE)
+    assert len(found) == 1, (
+        f"the `{name}` job declares python-version {found}, expected exactly one; this check "
+        f"cannot say which interpreter the job builds on otherwise"
+    )
+    return found[0]
+
+
+def test_the_job_builds_on_the_python_vercel_picks() -> None:
+    """A job that reproduces the install on the wrong interpreter reproduces nothing.
+
+    The pin and the pyproject floor are two places, so they are compared rather than trusted:
+    a requires-python bump would otherwise leave this job building on the old interpreter and
+    reporting green, which is this module's own defect class turned on itself. PR #72 is the
+    worked example of why the interpreter is not a detail - `docs/**` resolved to no files on
+    3.12 and to files on 3.13, so a job pinned to 3.13 would have been green on a deploy
+    surface that was broken on the version the deploy uses.
+    """
+    floor = requires_python_floor()
+    pinned = job_python_version(JOB)
+    assert pinned == floor, (
+        f"the `{JOB}` job builds on Python {pinned} and Vercel builds on {floor}, the "
+        f"requires-python floor its build log names, so the job reproduces vercel.json's "
+        f"install on an interpreter the deploy does not use"
+    )
+    # The second half is the pin reaching the interpreter, and it runs only in the job itself.
+    # REQUIRE=1 marks the one job whose whole claim is that its environment is the deploy's;
+    # `CI` keeps it out of a local run, where REQUIRE=1 is routinely set by hand inside the
+    # workspace venv on a different Python and the failure would say nothing about the deploy.
+    # So this half is CI-only by construction and the pin comparison above is not.
+    if os.environ.get(REQUIRE) == "1" and os.environ.get("CI") == "true":
+        running = ".".join(str(part) for part in sys.version_info[:2])
+        assert running == floor, (
+            f"{REQUIRE}=1, so this is the `{JOB}` job, and it is running Python {running} rather "
+            f"than the pinned {floor}: the pin in {WORKFLOW} did not reach the interpreter"
+        )
