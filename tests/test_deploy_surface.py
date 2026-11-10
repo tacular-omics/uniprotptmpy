@@ -23,6 +23,13 @@ file. ``UNIPROTPTMPY_REQUIRE_DEPLOY_SURFACE=1`` is what turns that into a failur
 the two import tests skip, which is what has to happen in the ``no-extras`` job and in a plain
 ``uv sync`` checkout, and a skip is how this whole class of defect stays invisible.
 
+One test here is not about the deploy surface but about this module's own apparatus.
+``vercel.json`` declares no rewrites, routes or redirects - on any of the three packages - so
+``test_no_rule_in_vercel_json_can_swallow_every_path`` iterates over nothing and would pass with a
+constant matcher, which is this module's own defect class turned on itself.
+``test_the_catch_all_translator_recognises_a_catch_all`` is what keeps that matcher honest while
+the config stays empty, and it has to stay even if the loop one day has rules to walk.
+
 Reference form for the sister vocabulary packages (psimodpy, unimodpy), which have the same two
 files and the same hole: everything package-specific is in the constants below, and every other
 name is read out of ``vercel.json``, the pyproject or the source.
@@ -302,6 +309,32 @@ def test_no_rule_in_vercel_json_can_swallow_every_path() -> None:
                 f"The Vercel Python runtime already routes every path to {ENTRY}, so a catch-all "
                 f"makes every request a 404"
             )
+
+
+def test_the_catch_all_translator_recognises_a_catch_all() -> None:
+    """The test above is vacuous on this tree, so check its apparatus rather than its loop.
+
+    This vercel.json declares no rewrites, routes or redirects at all - measured, its keys are
+    exactly `$schema`, `functions` and `installCommand` - so the loop in
+    `test_no_rule_in_vercel_json_can_swallow_every_path` iterates over nothing and would pass
+    with `source_matches_every_probe` returning a constant. Measured on the module as it landed
+    in #72: with the matcher replaced by `return False`, 10 collected and 10 passed, exit 0.
+    That is the whole defect class this module is about, sitting inside the module: a check that
+    never attempts anything cannot see anything. Both of the shapes Vercel accepts for the
+    recorded 404 defect are asserted here, against a path pattern that is not a catch-all, so
+    the translator cannot rot while the config stays empty.
+
+    Found and first fixed by the psimodpy session, which proved its own loop vacuous by mutation
+    rather than by reading the config; the wording below is theirs.
+    """
+    for catch_all in ("/(.*)", "/:path*"):
+        assert source_matches_every_probe(catch_all), (
+            f"the translator does not recognise {catch_all!r} as matching every path, so the "
+            f"catch-all test would pass on the 404 defect itself"
+        )
+    assert not source_matches_every_probe("/api/health"), (
+        "the translator calls a single-path rule a catch-all, so it would reject a legitimate rule"
+    )
 
 
 def test_every_include_files_glob_matches_files_that_exist() -> None:
