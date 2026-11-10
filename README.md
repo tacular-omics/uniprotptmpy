@@ -72,8 +72,8 @@ print(entry.resolve("unimod")[0].name)     # Phospho
 
 # Dict-style access, iteration, and formula helpers
 entry = db["PTM-0450"]
-print(db.get("missing", "not found"))  # not found; default instead of KeyError
-print("phosphoserine" in db)            # True; accepts db[key] keys or a PtmEntry
+print(db.get("missing"))      # None; the default, instead of KeyError
+print("phosphoserine" in db)  # True; accepts db[key] keys or a PtmEntry
 hydroxy = db.get_by_id("PTM-0476")
 print(hydroxy.correction_formula)  # O1
 print(hydroxy.dict_composition)    # {'O': 1}
