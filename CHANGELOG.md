@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `TaxonomicRange.description`: a description containing a nested pair of parentheses, such
+  as `Methylocystis sp. (strain SB2)`, was cut short at the first `)` because the parser used
+  a non-greedy regular expression. The parser now matches the outermost pair, so all 20
+  affected ranges in the bundled 2026_03 release keep the full organism name. `raw`,
+  `taxon_name` and `tax_id` are unchanged.
+
 ### Documentation
 
 - Add `db.get()` and membership checks to the README example and API table.

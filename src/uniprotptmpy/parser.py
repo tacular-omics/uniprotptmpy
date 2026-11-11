@@ -16,7 +16,27 @@ from uniprotptmpy.models import CrossReference, FeatureType, PtmEntry, Taxonomic
 
 _MULTI_VALUE = {"TR", "KW", "DR"}
 _TR_TAXID_RE = re.compile(r"taxId:(\d+)")
-_TR_DESC_RE = re.compile(r"\((.+?)\)")
+
+
+def _tr_description(text: str) -> str:
+    """Text inside the first outermost pair of parentheses, keeping nested pairs whole.
+
+    UniProt wraps the organism name in parentheses, and a strain qualifier adds
+    another pair inside it, e.g. ``(Methylocystis sp. (strain SB2))``. Matching
+    up to the first ``)`` cuts the qualifier short, so track depth instead.
+    """
+    start = -1
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch == "(":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == ")" and depth:
+            depth -= 1
+            if depth == 0:
+                return text[start + 1 : i]
+    return ""
 
 
 def _strip_period(s: str) -> str:
@@ -32,8 +52,7 @@ def _parse_tr(raw: str) -> TaxonomicRange:
     else:
         taxon_name = raw_clean
         tax_id = None
-    desc_match = _TR_DESC_RE.search(raw_clean)
-    description = desc_match.group(1) if desc_match else ""
+    description = _tr_description(raw_clean)
     return TaxonomicRange(taxon_name=taxon_name, tax_id=tax_id, description=description, raw=raw_clean)
 
 
