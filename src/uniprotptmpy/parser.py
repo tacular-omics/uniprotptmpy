@@ -45,15 +45,20 @@ def _strip_period(s: str) -> str:
 
 def _parse_tr(raw: str) -> TaxonomicRange:
     raw_clean = _strip_period(raw)
+    tax_ids = tuple(int(m) for m in _TR_TAXID_RE.findall(raw_clean))
     if "; taxId:" in raw_clean:
-        taxon_name, rest = raw_clean.split("; taxId:", 1)
-        taxid_match = re.match(r"(\d+)", rest)
-        tax_id = int(taxid_match.group(1)) if taxid_match else None
+        taxon_name, _ = raw_clean.split("; taxId:", 1)
     else:
         taxon_name = raw_clean
-        tax_id = None
+    tax_id = tax_ids[0] if tax_ids else None
     description = _tr_description(raw_clean)
-    return TaxonomicRange(taxon_name=taxon_name, tax_id=tax_id, description=description, raw=raw_clean)
+    return TaxonomicRange(
+        taxon_name=taxon_name,
+        tax_id=tax_id,
+        description=description,
+        raw=raw_clean,
+        tax_ids=tax_ids,
+    )
 
 
 def _parse_dr(raw: str) -> CrossReference:
