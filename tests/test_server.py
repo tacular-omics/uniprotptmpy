@@ -122,6 +122,15 @@ def test_rest_get_entry_shape_matches_pydantic(known_id: str) -> None:
         PtmEntry.model_validate(r.json())
 
 
+def test_rest_get_entry_includes_all_tax_ids() -> None:
+    with TestClient(app) as client:
+        r = client.get("/api/entries/PTM-0005")
+        assert r.status_code == 200
+        body = PtmEntry.model_validate(r.json())
+        assert body.taxonomic_ranges[0].tax_ids == [6447, 91827, 451864]
+        assert body.taxonomic_ranges[0].tax_id == 6447
+
+
 def test_rest_search_returns_summaries() -> None:
     with TestClient(app) as client:
         r = client.get("/api/search", params={"q": "phospho", "limit": 2})
