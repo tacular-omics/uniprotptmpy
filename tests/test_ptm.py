@@ -1,4 +1,6 @@
 import dataclasses
+import re
+from pathlib import Path
 
 import pytest
 
@@ -154,6 +156,45 @@ def test_parse_tr_tracks_parenthesis_depth() -> None:
     assert _parse_tr("Bacteria; taxId:1 (sp. (strain (A))).").description == "sp. (strain (A))"
     assert _parse_tr("Bacteria; taxId:1").description == ""
     assert _parse_tr("Bacteria; taxId:1 (unclosed").description == ""
+
+
+def test_taxonomic_range_multiple_tax_ids(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0005")
+    assert e is not None
+    tr = e.taxonomic_ranges[0]
+    assert tr.tax_ids == (6447, 91827, 451864)
+    assert tr.tax_id == 6447
+
+
+def test_taxonomic_range_single_tax_id(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0450")
+    assert e is not None
+    tr = e.taxonomic_ranges[0]
+    assert tr.tax_ids == (2157,)
+    assert tr.tax_id == 2157
+
+
+def test_taxonomic_range_no_tax_id(tmp_path: Path) -> None:
+    ptm_file = tmp_path / "ptmlist.txt"
+    ptm_file.write_text(
+        "ID   Test modification\nAC   PTM-9999\nFT   MOD_RES\nTG   Alanine.\nTR   Viruses.\n//\n",
+        encoding="utf-8",
+    )
+    parsed = parse_ptm_list(ptm_file)
+    tr = parsed["PTM-9999"].taxonomic_ranges[0]
+    assert tr.taxon_name == "Viruses"
+    assert tr.tax_ids == ()
+    assert tr.tax_id is None
+
+
+def test_taxonomic_range_tax_ids_invariants_across_database(db: PtmDatabase) -> None:
+    pattern = re.compile(r"taxId:(\d+)")
+    for entry in db:
+        for tr in entry.taxonomic_ranges:
+            expected = tuple(int(m) for m in pattern.findall(tr.raw))
+            assert tr.tax_ids == expected
+            assert len(tr.tax_ids) == len(pattern.findall(tr.raw))
+            assert tr.tax_id == (tr.tax_ids[0] if tr.tax_ids else None)
 
 
 def test_single_keyword(db: PtmDatabase) -> None:

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- `TaxonomicRange.tax_ids`: a `tuple[int, ...]` holding every taxon ID on a `TR` line in order
+  (and `list[int]` on the server wire model), so all 39 multi-taxon `TR` lines expose every
+  taxon ID instead of keeping only the first. `taxon_name`, `tax_id`, `description` and `raw`
+  are unchanged.
+
 ### Fixed
 
 - `TaxonomicRange.description`: a description containing a nested pair of parentheses, such

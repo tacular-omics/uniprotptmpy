@@ -37,6 +37,7 @@ class TaxonomicRange:
     tax_id: int | None
     description: str
     raw: str
+    tax_ids: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
