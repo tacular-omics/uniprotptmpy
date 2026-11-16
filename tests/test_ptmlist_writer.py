@@ -1,5 +1,7 @@
 """Tests for the ptmlist.txt round-trip writer."""
 
+from importlib.resources import files
+
 from uniprotptmpy import PtmDatabase, parse_ptm_list, write_ptmlist
 
 
@@ -84,6 +86,20 @@ def test_round_trip_taxonomic_ranges(db: PtmDatabase, tmp_path) -> None:
     names1 = {tr.taxon_name for tr in e1.taxonomic_ranges}
     names2 = {tr.taxon_name for tr in e2.taxonomic_ranges}
     assert names1 == names2
+
+
+def test_taxonomic_range_lines_match_bundled_release(db: PtmDatabase, tmp_path) -> None:
+    out = tmp_path / "out.txt"
+    write_ptmlist(db, out)
+    bundled = files("uniprotptmpy").joinpath("data", "ptmlist.txt")
+
+    original = [line for line in bundled.read_text(encoding="utf-8").splitlines() if line.startswith("TR   ")]
+    written = [line for line in out.read_text(encoding="utf-8").splitlines() if line.startswith("TR   ")]
+    assert original
+    assert all(line.endswith(".") for line in written)
+    assert written == original
+    assert list(parse_ptm_list(out)) == list(db)
+    assert all(not tr.raw.endswith(".") for entry in db for tr in entry.taxonomic_ranges)
 
 
 def test_round_trip_keywords(db: PtmDatabase, tmp_path) -> None:
