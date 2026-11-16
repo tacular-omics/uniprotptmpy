@@ -38,6 +38,7 @@ class TaxonomicRange:
     description: str
     raw: str
     tax_ids: tuple[int, ...] = ()
+    tax_names: tuple[str, ...] = ()  # name in parentheses after each taxId, same order and length as tax_ids
 
 
 @dataclass(frozen=True, slots=True)
