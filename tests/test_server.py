@@ -129,6 +129,7 @@ def test_rest_get_entry_includes_all_tax_ids() -> None:
         body = PtmEntry.model_validate(r.json())
         assert body.taxonomic_ranges[0].tax_ids == [6447, 91827, 451864]
         assert body.taxonomic_ranges[0].tax_id == 6447
+        assert body.taxonomic_ranges[0].tax_names == ["Mollusca", "Gunneridae", "Dikarya"]
 
 
 def test_rest_search_returns_summaries() -> None:
