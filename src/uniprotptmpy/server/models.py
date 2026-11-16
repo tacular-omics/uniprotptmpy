@@ -33,6 +33,7 @@ class TaxonomicRange(BaseModel):
     description: str
     raw: str
     tax_ids: list[int]
+    tax_names: list[str]
 
 
 class PtmEntry(BaseModel):
@@ -113,6 +114,7 @@ def _taxonomic_range(t: _TaxonomicRange) -> TaxonomicRange:
         description=t.description,
         raw=t.raw,
         tax_ids=list(t.tax_ids),
+        tax_names=list(t.tax_names),
     )
 
 
