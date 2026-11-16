@@ -11,6 +11,8 @@
 
 ### Fixed
 
+- Terminate `TR` lines with a period when writing UniProt flat files (#87).
+
 - `TaxonomicRange.description`: a description containing a nested pair of parentheses, such
   as `Methylocystis sp. (strain SB2)`, was cut short at the first `)` because the parser used
   a non-greedy regular expression. The parser now matches the outermost pair, so all 20

@@ -38,7 +38,7 @@ def _write_entry(fh, entry: PtmEntry) -> None:
     if entry.cellular_location is not None:
         fh.write(_fmt_line("LC", entry.cellular_location + "."))
     for tr in entry.taxonomic_ranges:
-        fh.write(_fmt_line("TR", _format_tr(tr)))
+        fh.write(_fmt_line("TR", _format_tr(tr) + "."))
     for kw in entry.keywords:
         fh.write(_fmt_line("KW", kw + "."))
     for xr in entry.cross_references:
