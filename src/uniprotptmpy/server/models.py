@@ -71,6 +71,12 @@ class PtmSummary(BaseModel):
     monoisotopic_mass: float | None
 
 
+class MassMatch(PtmSummary):
+    """A ``PtmSummary`` plus the signed mass error of one ``search_mass`` hit."""
+
+    error: float = Field(description="Signed error in Da: the queried delta minus the entry's monoisotopic mass.")
+
+
 class HealthResponse(BaseModel):
     ok: bool
     package: str
@@ -91,6 +97,26 @@ class SearchResponse(BaseModel):
     limit: int
     items: list[PtmSummary] = Field(
         description="Lightweight summaries; call get_by_id for the full record.",
+    )
+
+
+class SearchMassResponse(BaseModel):
+    delta: float
+    tolerance: float
+    site: str | None
+    position: str | None
+    total: int
+    limit: int
+    items: list[MassMatch] = Field(
+        description="Matches closest first, each a PtmSummary plus the signed error in Da (delta minus mass).",
+    )
+
+
+class SiteResponse(BaseModel):
+    site: str
+    total: int
+    items: list[PtmSummary] = Field(
+        description="Entries whose target includes the residue, in file order; call get_by_id for the full record.",
     )
 
 
@@ -149,3 +175,7 @@ def to_ptm_summary(entry: _PtmEntry) -> PtmSummary:
         target=entry.target,
         monoisotopic_mass=entry.monoisotopic_mass,
     )
+
+
+def to_mass_match(entry: _PtmEntry, error: float) -> MassMatch:
+    return MassMatch(**to_ptm_summary(entry).model_dump(), error=error)
