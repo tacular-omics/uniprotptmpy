@@ -596,11 +596,11 @@ wheels = [
 
 [[package]]
 name = "psimodpy"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5c/0c/9673149ff855b2ec7fc143ec7b049fd8c1ace2832a3c5fd18078d2ce57a5/psimodpy-1.2.0.tar.gz", hash = "sha256:62c4d6297097e90df9f527da9b5431d8846abff82c91591e0d7b063867bd830e", size = 314197, upload-time = "2026-11-07T18:27:30.123Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/e9/b4f17ba8d95598b276fa02c3118d589b605888160d7df8709f738d176274/psimodpy-1.3.0.tar.gz", hash = "sha256:1f2b18b62327a92b9f00e00016e8cb1e1f10cd78287d4352f50e9055d8f47118", size = 343541, upload-time = "2026-11-17T03:39:09.915Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/8b/399d5bbe97baaf51b5c3f380caae6093f7406272da652da77a01911b5b66/psimodpy-1.2.0-py3-none-any.whl", hash = "sha256:267c0de110923b14eec5ba07fef94089e018e0224d322bb36f09c5d877aa7fa6", size = 288032, upload-time = "2026-11-07T18:27:28.402Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/ac/bf10fb25d35821b23abf733f399ff1b3bf9b74df68bd78b815afc2c57e2d/psimodpy-1.3.0-py3-none-any.whl", hash = "sha256:55c10d575922eca20868d26103e3bce330bdd7dff881864311f1655d41d9e7d8", size = 292931, upload-time = "2026-11-17T03:39:08.284Z" },
 ]
 
 [[package]]
@@ -989,11 +989,11 @@ wheels = [
 
 [[package]]
 name = "tacular"
-version = "2.1.0"
+version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/89/76/87dad39e8da779f6b5f5772a9dcd621e3687abe435110bb25e27ba574206/tacular-2.1.0.tar.gz", hash = "sha256:f36f66cbecc6b7674cf003bd90f4ace1f4b09c91b6fc18baac4fb129f5bd30bd", size = 602615, upload-time = "2026-11-07T18:27:44.392Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/07/098ed68b552f0b225efee475b8a90bd800ebfbc053fa98a2947cabc1576b/tacular-2.2.0.tar.gz", hash = "sha256:c0f00d56b48eff4f167960315927d1e24d74bec2ffbfa6ad9356c88842fcf2c0", size = 608054, upload-time = "2026-11-17T03:39:01.913Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/23/81/5614662c6b8083f7d50ce240720761e6d491408287c959d8a5af0e6ce6d5/tacular-2.1.0-py3-none-any.whl", hash = "sha256:02151bd3bde88663b8b98f804682fd515953a316bd81af4eb558ac7a9016e85e", size = 444024, upload-time = "2026-11-07T18:27:42.834Z" },
+    { url = "https://files.pythonhosted.org/packages/35/10/b7e388af68f033238e0c383b3b72c3142005d1f63d25d8e4ba842435c347/tacular-2.2.0-py3-none-any.whl", hash = "sha256:4ebb6c004c73eca0b615fb1e3436ac6d2114573fc84d9255663f498e9627e528", size = 446609, upload-time = "2026-11-17T03:39:00.553Z" },
 ]
 
 [[package]]
@@ -1053,11 +1053,11 @@ wheels = [
 
 [[package]]
 name = "unimodpy"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/96/29/e27ca0924259e03e9bd21d747d90e7b3cbb80cca5abd86c0bd072ea784f4/unimodpy-1.2.0.tar.gz", hash = "sha256:dab0d04fb34d2112ed4faf3c0f9d9ce7ff7b4b5388cacb2eae3a772e7fbc849c", size = 214143, upload-time = "2026-11-07T18:31:03.042Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/5b/3722ea6cbda420b68cb037dd2468ac000dcaa0ae2f698ae03fe02a7e26ad/unimodpy-1.3.0.tar.gz", hash = "sha256:7955817f57ae43c49edfbedb0bc0e277c90300877a7acb242cb5a5aa67f2bed8", size = 241336, upload-time = "2026-11-17T03:39:04.896Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/9b/b18b6724e6f26f4934a7e9aeda98a02794bf5abc8f91ba9db2e5f2727902/unimodpy-1.2.0-py3-none-any.whl", hash = "sha256:7c0f31b98e3ae109d73f7874d655accef4d06f93129d5d656c3307b873525481", size = 186706, upload-time = "2026-11-07T18:31:01.064Z" },
+    { url = "https://files.pythonhosted.org/packages/04/02/1cb3ab7bb05a55023737aed985eaa2b1968f575327ff5f5557ba43ba5174/unimodpy-1.3.0-py3-none-any.whl", hash = "sha256:26eb0eed7ff55442510110cdf9dfbed62c03eb329281e18f10550393f4e4537e", size = 190241, upload-time = "2026-11-17T03:39:03.65Z" },
 ]
 
 [[package]]

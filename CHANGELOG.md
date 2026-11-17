@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.0] (2026-11-16)
+
 ### Added
 
 - `TaxonomicRange.tax_ids`: a `tuple[int, ...]` holding every taxon ID on a `TR` line in order
