@@ -5,7 +5,7 @@
 ### Added
 
 - The dashboard payload (`dashboard_entries()`, `/data.json`) now carries `tax_ids: list[int]` on each
-  `taxonomic_ranges` item, and the taxon table of the browser page shows them in a new "Taxon ID"
+  `taxonomic_ranges` item, and the taxon table of the browser page shows them in a new "Taxon IDs"
   column. `taxon_name` and `description` are unchanged (#84).
 - `TaxonomicRange.tax_ids`: a `tuple[int, ...]` holding every taxon ID on a `TR` line in order
   (and `list[int]` on the server wire model), so all 39 multi-taxon `TR` lines expose every
