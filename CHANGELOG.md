@@ -4,32 +4,32 @@
 
 ### Added
 
-- The dashboard payload (`dashboard_entries()`, `/data.json`) now carries `tax_ids: list[int]` on each
-  `taxonomic_ranges` item, and the taxon table of the browser page shows them in a new "Taxon IDs"
-  column. `taxon_name` and `description` are unchanged (#84).
 - `TaxonomicRange.tax_ids`: a `tuple[int, ...]` holding every taxon ID on a `TR` line in order
   (and `list[int]` on the server wire model), so all 39 multi-taxon `TR` lines expose every
   taxon ID instead of keeping only the first. `taxon_name`, `tax_id`, `description` and `raw`
-  are unchanged.
+  are unchanged (#77).
 - `TaxonomicRange.tax_names`: a `tuple[str, ...]` (and `list[str]` on the server wire model) with
   the name that follows each `taxId:N`, in the same order and length as `tax_ids`. The second and
   later taxon names of the 39 multi-taxon `TR` lines (51 names) were in no field before; they
   are read with balanced parentheses, so a name such as `Bacillus velezensis (strain ...)` stays
   whole. `taxon_name`, `tax_id`, `tax_ids`, `description` and `raw` are unchanged (#85).
+- The dashboard payload (`dashboard_entries()`, `/data.json`) now carries `tax_ids: list[int]` on
+  each `taxonomic_ranges` item, and the taxon table of the browser page shows them in a "Taxon IDs"
+  column. `taxon_name` and `description` are unchanged (#84).
 
 ### Fixed
 
 - Terminate `TR` lines with a period when writing UniProt flat files (#87).
-
 - `TaxonomicRange.description`: a description containing a nested pair of parentheses, such
   as `Methylocystis sp. (strain SB2)`, was cut short at the first `)` because the parser used
   a non-greedy regular expression. The parser now matches the outermost pair, so all 20
   affected ranges in the bundled 2026_03 release keep the full organism name. `raw`,
-  `taxon_name` and `tax_id` are unchanged.
+  `taxon_name` and `tax_id` are unchanged (#75).
 
 ### Documentation
 
 - Add `db.get()` and membership checks to the README example and API table.
+- The README named the `get_by_site` parameter `residue`; it is `site` (#81).
 
 ## [1.2.0] (2026-11-06)
 
