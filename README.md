@@ -148,7 +148,7 @@ claude mcp add uniprot-ptm https://uniprot.tacular.dev/mcp --transport http
 | `UniprotPtmError`, `UniprotPtmParseError`, `UniprotPtmKeyError` | Package exceptions; the parse error is also a `ValueError`, and `UniprotPtmKeyError` (raised by `db[key]` on a miss) is also a `KeyError`. |
 | `FeatureType` | StrEnum: `CROSSLNK`, `MOD_RES`, `LIPID`, `CARBOHYD`, `DISULFID`. |
 | `CrossReference` | Frozen dataclass with `database` and `accession` fields. |
-| `TaxonomicRange` | Frozen dataclass with `taxon_name`, `tax_id`, `description`, and `raw` fields. |
+| `TaxonomicRange` | Frozen dataclass with `taxon_name`, `tax_id`, `description`, `raw`, `tax_ids` and `tax_names` fields. |
 
 </details>
 

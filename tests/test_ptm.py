@@ -197,6 +197,49 @@ def test_taxonomic_range_tax_ids_invariants_across_database(db: PtmDatabase) -> 
             assert tr.tax_id == (tr.tax_ids[0] if tr.tax_ids else None)
 
 
+def test_tax_names_multiple_taxa(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0005")
+    assert e is not None
+    assert e.taxonomic_ranges[0].tax_names == ("Mollusca", "Gunneridae", "Dikarya")
+
+
+def test_tax_names_single_taxon(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0450")
+    assert e is not None
+    assert e.taxonomic_ranges[0].tax_names == ("Archaea",)
+
+
+def test_tax_names_nested_parentheses(db: PtmDatabase) -> None:
+    e = db.get_by_id("PTM-0461")
+    assert e is not None
+    tr = e.taxonomic_ranges[0]
+    assert tr.tax_ids == (326423, 1408)
+    assert tr.tax_names == ("Bacillus velezensis (strain DSM 23117 / BGSC 10A6 / FZB42)", "Bacillus pumilus")
+
+
+def test_tax_names_empty_without_taxid(tmp_path: Path) -> None:
+    ptm_file = tmp_path / "ptmlist.txt"
+    ptm_file.write_text(
+        "ID   Test modification\nAC   PTM-9999\nFT   MOD_RES\nTG   Alanine.\nTR   Viruses.\n//\n",
+        encoding="utf-8",
+    )
+    tr = parse_ptm_list(ptm_file)["PTM-9999"].taxonomic_ranges[0]
+    assert tr.tax_names == ()
+
+
+def test_tax_names_same_length_as_tax_ids_across_database(db: PtmDatabase) -> None:
+    ranges = [tr for e in db for tr in e.taxonomic_ranges]
+    assert ranges
+    assert [tr.raw for tr in ranges if len(tr.tax_names) != len(tr.tax_ids)] == []
+    assert all(tr.tax_names[0] == tr.description for tr in ranges if tr.tax_names and "(" not in tr.description)
+
+
+def test_parse_tr_tax_names_edge_cases() -> None:
+    assert _parse_tr("Bacteria; taxId:1 (sp. (strain (A))), taxId:2 (B).").tax_names == ("sp. (strain (A))", "B")
+    assert _parse_tr("Bacteria; taxId:1, taxId:2 (B)").tax_names == ("", "B")
+    assert _parse_tr("Bacteria; taxId:1 (unclosed").tax_names == ("",)
+
+
 def test_single_keyword(db: PtmDatabase) -> None:
     e = db.get_by_id("PTM-0476")
     assert e is not None

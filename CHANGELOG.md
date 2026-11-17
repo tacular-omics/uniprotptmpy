@@ -8,6 +8,11 @@
   (and `list[int]` on the server wire model), so all 39 multi-taxon `TR` lines expose every
   taxon ID instead of keeping only the first. `taxon_name`, `tax_id`, `description` and `raw`
   are unchanged.
+- `TaxonomicRange.tax_names`: a `tuple[str, ...]` (and `list[str]` on the server wire model) with
+  the name that follows each `taxId:N`, in the same order and length as `tax_ids`. The second and
+  later taxon names of the 39 multi-taxon `TR` lines (51 names) were in no field before; they
+  are read with balanced parentheses, so a name such as `Bacillus velezensis (strain ...)` stays
+  whole. `taxon_name`, `tax_id`, `tax_ids`, `description` and `raw` are unchanged (#85).
 
 ### Fixed
 

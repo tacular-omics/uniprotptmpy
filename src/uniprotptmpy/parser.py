@@ -18,25 +18,45 @@ _MULTI_VALUE = {"TR", "KW", "DR"}
 _TR_TAXID_RE = re.compile(r"taxId:(\d+)")
 
 
-def _tr_description(text: str) -> str:
-    """Text inside the first outermost pair of parentheses, keeping nested pairs whole.
+def _read_parenthesised(text: str, start: int = 0) -> tuple[str, int] | None:
+    """Text of the first outermost pair of parentheses at or after ``start``, keeping nested pairs whole.
 
     UniProt wraps the organism name in parentheses, and a strain qualifier adds
     another pair inside it, e.g. ``(Methylocystis sp. (strain SB2))``. Matching
     up to the first ``)`` cuts the qualifier short, so track depth instead.
+    Returns the inner text and the index just past the closing parenthesis, or
+    None if there is no complete pair.
     """
-    start = -1
+    first = -1
     depth = 0
-    for i, ch in enumerate(text):
+    for i in range(start, len(text)):
+        ch = text[i]
         if ch == "(":
             if depth == 0:
-                start = i
+                first = i
             depth += 1
         elif ch == ")" and depth:
             depth -= 1
             if depth == 0:
-                return text[start + 1 : i]
-    return ""
+                return text[first + 1 : i], i + 1
+    return None
+
+
+def _tr_description(text: str) -> str:
+    """Text inside the first outermost pair of parentheses, keeping nested pairs whole."""
+    found = _read_parenthesised(text)
+    return found[0] if found else ""
+
+
+def _tr_tax_names(text: str) -> tuple[str, ...]:
+    """The name in parentheses after each ``taxId:N``, in order; "" if a taxon has none."""
+    names: list[str] = []
+    for m in _TR_TAXID_RE.finditer(text):
+        rest = text[m.end() :].lstrip()
+        offset = len(text) - len(rest)
+        found = _read_parenthesised(text, offset) if rest.startswith("(") else None
+        names.append(found[0] if found else "")
+    return tuple(names)
 
 
 def _strip_period(s: str) -> str:
@@ -58,6 +78,7 @@ def _parse_tr(raw: str) -> TaxonomicRange:
         description=description,
         raw=raw_clean,
         tax_ids=tax_ids,
+        tax_names=_tr_tax_names(raw_clean),
     )
 
 
