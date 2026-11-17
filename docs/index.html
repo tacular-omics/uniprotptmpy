@@ -629,7 +629,7 @@ function detail(e){
   if(e.cellular_location)kv.push(['Cellular location',x(e.cellular_location)]);
   if((e.keywords||[]).length)kv.push(['Keywords',`<div class="tags">${e.keywords.map(k=>`<span class="tag">${x(k)}</span>`).join('')}</div>`]);
   const xrefRows=(e.cross_references||[]).map(r=>`<tr><td>${x(r.database)}</td><td class="mono">${x(r.accession)}</td></tr>`).join('');
-  const taxRows=(e.taxonomic_ranges||[]).map(t=>`<tr><td>${x(t.taxon_name)}</td><td class="wrap">${t.description&&t.description!==t.taxon_name?x(t.description):''}</td></tr>`).join('');
+  const taxRows=(e.taxonomic_ranges||[]).map(t=>`<tr><td>${x(t.taxon_name)}</td><td class="wrap">${t.description&&t.description!==t.taxon_name?x(t.description):''}</td><td>${(t.tax_ids||[]).map(i=>x(String(i))).join(', ')}</td></tr>`).join('');
   return`<dl class="stats">
 <div><dt>Δ mass, monoisotopic (Da)</dt><dd>${num(e.monoisotopic_mass,6)}</dd></div>
 <div><dt>Δ mass, average (Da)</dt><dd>${e.average_mass!=null?x(e.average_mass):'–'}</dd></div>
@@ -637,7 +637,7 @@ function detail(e){
 <dl class="kv">${kv.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
 <div class="cols">
 ${xrefRows?`<div><h3>Cross-references (${e.cross_references.length})</h3><div class="table-wrap auto"><table class="data"><thead><tr><th>Database</th><th>Accession</th></tr></thead><tbody>${xrefRows}</tbody></table></div></div>`:''}
-${taxRows?`<div><h3>Taxonomic range (${e.taxonomic_ranges.length})</h3><div class="table-wrap auto"><table class="data"><thead><tr><th>Taxon</th><th>Description</th></tr></thead><tbody>${taxRows}</tbody></table></div></div>`:''}
+${taxRows?`<div><h3>Taxonomic range (${e.taxonomic_ranges.length})</h3><div class="table-wrap auto"><table class="data"><thead><tr><th>Taxon</th><th>Description</th><th>Taxon ID</th></tr></thead><tbody>${taxRows}</tbody></table></div></div>`:''}
 </div>`;
 }
 function findEntry(qid){return BY_NUM.get(Number(qid));}
