@@ -249,3 +249,17 @@ def test_to_ptm_entry_survives_unparseable_cf() -> None:
     assert wire.correction_formula == "C2 X? H1"
     assert wire.dict_composition is None
     assert wire.proforma_formula is None
+
+
+def test_dashboard_taxon_ids_match_library() -> None:
+    from uniprotptmpy import load
+    from uniprotptmpy.server.dashboard import dashboard_entries
+
+    db = load()
+    rows = dashboard_entries(db)
+    assert len(rows) == len(db) == 750
+    for row in rows:
+        entry = db[row["id"]]
+        assert [t["tax_ids"] for t in row["taxonomic_ranges"]] == [list(tr.tax_ids) for tr in entry.taxonomic_ranges]
+    ranges = next(r for r in rows if r["id"] == "PTM-0005")["taxonomic_ranges"]
+    assert [i for t in ranges for i in t["tax_ids"]] == [6447, 91827, 451864]
