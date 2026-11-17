@@ -315,7 +315,9 @@ The ASGI app is `uniprotptmpy.server.app:app` (also importable as
 | `GET /api/entries?limit=50&offset=0` | `{"total", "limit", "offset", "items": [PtmEntry]}`; `limit` 1-500, `offset` >= 0 |
 | `GET /api/entries/{id}` | `PtmEntry`; `PTM-0253` or `0253`; 404 `{"detail": "No entry for id='...'"}` |
 | `GET /api/entries/by-name/{name}` | `PtmEntry`; case-insensitive exact name; 404 if missing |
-| `GET /api/search?q=...&limit=50` | `{"query", "total", "limit", "items": [PtmSummary]}`; `q` required (min length 1), `limit` 1-500 |
+| `GET /api/entries/by-site/{residue}` | `{"site", "total", "items": [PtmSummary]}`; one residue letter (case-insensitive), in file order; `N-term`/`C-term` give an empty list; 422 for an unknown or multi-letter site |
+| `GET /api/search?q=...&limit=50&offset=0` | `{"query", "total", "limit", "items": [PtmSummary]}`; `q` required (min length 1), `limit` 1-500, `offset` >= 0 |
+| `GET /api/search-mass?delta=...&tolerance=0.01&site=...&position=...&limit=50` | `{"delta", "tolerance", "site", "position", "total", "limit", "items": [MassMatch]}`; `MassMatch` is a `PtmSummary` plus `error` (`delta` minus the monoisotopic mass, Da), closest first; `delta` required, `tolerance` >= 0 in Da, `limit` 1-500; 422 for an unknown site/position or non-finite `delta` |
 | `POST /mcp` | MCP endpoint (below) |
 | `GET /docs`, `GET /redoc`, `GET /openapi.json` | OpenAPI docs |
 
@@ -350,6 +352,7 @@ Tools (each declares an `outputSchema`; results are in `structuredContent`):
 | `get_by_id` | `id: str` (`"PTM-0450"` or `"0450"`) | full `PtmEntry` or `null` |
 | `get_by_name` | `name: str` (exact, case-insensitive) | full `PtmEntry` or `null` |
 | `search` | `query: str`, `limit: int = 25` | list of `PtmSummary` |
+| `search_mass` | `delta: float`, `tolerance: float = 0.01` (Da, >= 0), `site: str \| None`, `position: str \| None`, `limit: int = 25` (1-500) | list of `MassMatch` (`PtmSummary` + signed `error` = `delta` - mass), closest first; an unknown site or position is a tool error |
 
 A miss returns `{"result": null}`, not an error. Typical flow: `search`, then
 `get_by_id` on a returned `id`.
