@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+
+- Server extra: `GET /api/search-mass` (`delta` required, `tolerance` in Da defaulting to 0.01 and
+  >= 0, optional `site` and `position`, `limit` 1-500) returns `PtmDatabase.search_mass` matches
+  closest first, each a `PtmSummary` plus the signed `error` (`delta` minus mass, in Da).
+  `GET /api/entries/by-site/{residue}` returns `PtmDatabase.get_by_site` as summaries. The MCP
+  server gains a `search_mass` tool with the same arguments and bounds and an `outputSchema`.
+  An unknown site or position, a negative tolerance and a non-finite `delta` return 422.
+  `/api/search` also accepts `offset` (default 0), so a client can page past the first 500
+  results. The five existing routes and three existing tools are unchanged (#76).
+
 ## [1.3.0] (2026-11-16)
 
 ### Added
