@@ -15,6 +15,7 @@ class DashboardXref(TypedDict):
 class DashboardTaxon(TypedDict):
     taxon_name: str
     description: str
+    tax_ids: list[int]
 
 
 class DashboardRow(TypedDict):
@@ -60,7 +61,8 @@ def dashboard_entries(db: PtmDatabase | None = None) -> list[DashboardRow]:
                     {"database": xr.database, "accession": xr.accession} for xr in entry.cross_references
                 ],
                 "taxonomic_ranges": [
-                    {"taxon_name": tr.taxon_name, "description": tr.description} for tr in entry.taxonomic_ranges
+                    {"taxon_name": tr.taxon_name, "description": tr.description, "tax_ids": list(tr.tax_ids)}
+                    for tr in entry.taxonomic_ranges
                 ],
             }
         )
