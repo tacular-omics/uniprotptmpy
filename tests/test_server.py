@@ -20,7 +20,7 @@ pytest.importorskip("mcp")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from uniprotptmpy.server.app import app  # noqa: E402
-from uniprotptmpy.server.models import PtmEntry, PtmSummary  # noqa: E402
+from uniprotptmpy.server.models import MassMatch, PtmEntry, PtmSummary  # noqa: E402
 
 _MCP_HEADERS = {"accept": "application/json, text/event-stream"}
 _INIT_PARAMS = {
@@ -62,7 +62,7 @@ def test_tools_list_includes_output_schema(mcp_client: TestClient) -> None:
     _mcp(mcp_client, "initialize", _INIT_PARAMS)
     resp = _mcp(mcp_client, "tools/list", req_id=2)
     tools = {t["name"]: t for t in resp["result"]["tools"]}
-    assert set(tools) == {"get_by_id", "get_by_name", "search"}
+    assert set(tools) == {"get_by_id", "get_by_name", "search", "search_mass"}
     for name, tool in tools.items():
         assert tool.get("outputSchema"), f"{name} is missing outputSchema"
 
@@ -263,3 +263,132 @@ def test_dashboard_taxon_ids_match_library() -> None:
         assert [t["tax_ids"] for t in row["taxonomic_ranges"]] == [list(tr.tax_ids) for tr in entry.taxonomic_ranges]
     ranges = next(r for r in rows if r["id"] == "PTM-0005")["taxonomic_ranges"]
     assert [i for t in ranges for i in t["tax_ids"]] == [6447, 91827, 451864]
+
+
+# --- search-mass and by-site (#76) ---
+
+
+def _expected_mass_rows(**kwargs: Any) -> list[tuple[str, float]]:
+    from uniprotptmpy import load
+
+    return [(e.id, err) for e, err in load().search_mass(79.9663, tolerance=0.01, **kwargs)]
+
+
+def test_rest_search_mass_matches_library() -> None:
+    expected = _expected_mass_rows(site="STY")
+    assert expected, "79.9663 on STY should hit phosphorylations"
+    with TestClient(app) as client:
+        r = client.get("/api/search-mass", params={"delta": 79.9663, "tolerance": 0.01, "site": "STY"})
+    assert r.status_code == 200
+    body = r.json()
+    assert [(i["id"], i["error"]) for i in body["items"]] == expected
+    assert body["total"] == len(expected)
+    for item in body["items"]:
+        MassMatch.model_validate(item)
+        assert "cross_references" not in item
+
+
+def test_rest_search_mass_default_tolerance_and_limit() -> None:
+    with TestClient(app) as client:
+        body = client.get("/api/search-mass", params={"delta": 79.9663}).json()
+        assert body["tolerance"] == 0.01
+        capped = client.get("/api/search-mass", params={"delta": 79.9663, "tolerance": 5, "limit": 2}).json()
+    assert len(capped["items"]) == 2
+    assert capped["total"] > 2
+
+
+def test_rest_search_mass_position() -> None:
+    from uniprotptmpy import load
+
+    expected = [e.id for e, _ in load().search_mass(79.9663, site="S", position="protein n-term")]
+    with TestClient(app) as client:
+        body = client.get(
+            "/api/search-mass", params={"delta": 79.9663, "site": "S", "position": "protein n-term"}
+        ).json()
+    assert [i["id"] for i in body["items"]] == expected
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"delta": 79.9663, "site": "X9"},
+        {"delta": 79.9663, "position": "nowhere"},
+        {"delta": 79.9663, "tolerance": -0.1},
+        {"delta": 79.9663, "limit": 0},
+        {"delta": 79.9663, "limit": 501},
+        {"delta": "nan"},
+        {},
+    ],
+)
+def test_rest_search_mass_invalid_is_422(params: dict) -> None:
+    with TestClient(app) as client:
+        assert client.get("/api/search-mass", params=params).status_code == 422
+
+
+def test_rest_by_site_matches_library() -> None:
+    from uniprotptmpy import load
+
+    expected = [e.id for e in load().get_by_site("S")]
+    assert expected
+    with TestClient(app) as client:
+        r = client.get("/api/entries/by-site/S")
+        lower = client.get("/api/entries/by-site/s")
+    assert r.status_code == 200
+    body = r.json()
+    assert [i["id"] for i in body["items"]] == expected
+    assert body["total"] == len(expected)
+    for item in body["items"]:
+        PtmSummary.model_validate(item)
+    assert [i["id"] for i in lower.json()["items"]] == expected
+
+
+@pytest.mark.parametrize("site", ["X9", "B", "STY", "1"])
+def test_rest_by_site_unknown_is_422(site: str) -> None:
+    with TestClient(app) as client:
+        assert client.get(f"/api/entries/by-site/{site}").status_code == 422
+
+
+def test_rest_by_site_terminus_is_empty_not_error() -> None:
+    with TestClient(app) as client:
+        r = client.get("/api/entries/by-site/N-term")
+    assert r.status_code == 200
+    assert r.json()["items"] == []
+
+
+def test_rest_search_offset_pages_past_first_results() -> None:
+    with TestClient(app) as client:
+        full = client.get("/api/search", params={"q": "PTM-", "limit": 500}).json()
+        page = client.get("/api/search", params={"q": "PTM-", "limit": 500, "offset": 500}).json()
+        bad = client.get("/api/search", params={"q": "PTM-", "offset": -1})
+    assert full["total"] > 500
+    assert page["total"] == full["total"]
+    assert len(page["items"]) == full["total"] - 500
+    assert page["items"][0]["id"] not in {i["id"] for i in full["items"]}
+    assert bad.status_code == 422
+
+
+def test_mcp_search_mass_matches_rest(mcp_client: TestClient) -> None:
+    args = {"delta": 79.9663, "tolerance": 0.01, "site": "STY", "limit": 500}
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(mcp_client, "tools/call", {"name": "search_mass", "arguments": args}, req_id=2)
+    rows = resp["result"]["structuredContent"]["result"]
+    rest = mcp_client.get("/api/search-mass", params=args).json()["items"]
+    assert rows == rest
+    assert [(r["id"], r["error"]) for r in rows] == _expected_mass_rows(site="STY")
+    for row in rows:
+        MassMatch.model_validate(row)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [{"limit": 0}, {"limit": 501}, {"tolerance": -1}, {"site": "X9"}, {"position": "nowhere"}],
+)
+def test_mcp_search_mass_rejects_bad_arguments(mcp_client: TestClient, extra: dict) -> None:
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(
+        mcp_client,
+        "tools/call",
+        {"name": "search_mass", "arguments": {"delta": 79.9663, **extra}},
+        req_id=2,
+    )
+    assert resp["result"]["isError"] is True

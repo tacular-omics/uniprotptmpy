@@ -13,13 +13,19 @@ from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 
 import uniprotptmpy
+from uniprotptmpy._mass import parse_site
+from uniprotptmpy.errors import UniprotPtmError
 from uniprotptmpy.server.dashboard import dashboard_entries
 from uniprotptmpy.server.models import (
     EntryListResponse,
     HealthResponse,
+    MassMatch,
     PtmEntry,
     PtmSummary,
+    SearchMassResponse,
     SearchResponse,
+    SiteResponse,
+    to_mass_match,
     to_ptm_entry,
     to_ptm_summary,
 )
@@ -83,6 +89,26 @@ def _build_mcp() -> MCPServer:
         summaries.  Call ``get_by_id`` on any returned ``id`` to fetch the full entry.
         """
         return [to_ptm_summary(e) for e in _db.search(query)[:limit]]
+
+    @mcp.tool()
+    def search_mass(
+        delta: float,
+        tolerance: Annotated[float, Field(ge=0)] = 0.01,
+        site: str | None = None,
+        position: str | None = None,
+        limit: Annotated[int, Field(ge=1, le=500)] = 25,
+    ) -> list[MassMatch]:
+        """Find PTMs by monoisotopic delta mass, closest first.
+
+        Returns up to ``limit`` (1-500) entries whose monoisotopic mass is within ``tolerance``
+        Da (default 0.01, >= 0) of ``delta``, each a lightweight summary plus ``error``, the
+        signed difference ``delta - mass`` in Da. ``site`` narrows to residue letters (``"S"``,
+        ``"STY"`` for any of them) or ``"N-term"``/``"C-term"``; ``position`` is one of
+        ``"anywhere"``, ``"peptide n-term"``, ``"peptide c-term"``, ``"protein n-term"``,
+        ``"protein c-term"``. An unknown site or position is an error.
+        """
+        hits = _db.search_mass(delta, tolerance=tolerance, site=site, position=position)
+        return [to_mass_match(e, err) for e, err in hits[:limit]]
 
     return mcp
 
@@ -168,17 +194,58 @@ def get_entry_by_name(name: str) -> PtmEntry:
     return to_ptm_entry(entry)
 
 
+@app.get("/api/entries/by-site/{residue}", response_model=SiteResponse)
+def get_entries_by_site(residue: str) -> SiteResponse:
+    """Entries that can occur on one residue letter (``S``); crosslinks appear under each residue.
+
+    ``N-term`` and ``C-term`` are accepted and match nothing, as UniProt has no terminus-only entries.
+    """
+    try:
+        terminus, _ = parse_site(residue, UniprotPtmError)
+    except UniprotPtmError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not terminus and len(residue.strip()) != 1:
+        raise HTTPException(status_code=422, detail=f"site must be exactly one residue, got {residue!r}")
+    results = _db.get_by_site(residue)
+    return SiteResponse(site=residue, total=len(results), items=[to_ptm_summary(e) for e in results])
+
+
 @app.get("/api/search", response_model=SearchResponse)
 def search_entries(
     q: str = Query(..., min_length=1),
     limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ) -> SearchResponse:
     results = _db.search(q)
     return SearchResponse(
         query=q,
         total=len(results),
         limit=limit,
-        items=[to_ptm_summary(e) for e in results[:limit]],
+        items=[to_ptm_summary(e) for e in results[offset : offset + limit]],
+    )
+
+
+@app.get("/api/search-mass", response_model=SearchMassResponse)
+def search_mass_entries(
+    delta: float,
+    tolerance: float = Query(0.01, ge=0),
+    site: str | None = None,
+    position: str | None = None,
+    limit: int = Query(50, ge=1, le=500),
+) -> SearchMassResponse:
+    """Entries within ``tolerance`` Da of the monoisotopic ``delta``, closest first, with signed error."""
+    try:
+        results = _db.search_mass(delta, tolerance=tolerance, site=site, position=position)
+    except UniprotPtmError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return SearchMassResponse(
+        delta=delta,
+        tolerance=tolerance,
+        site=site,
+        position=position,
+        total=len(results),
+        limit=limit,
+        items=[to_mass_match(e, err) for e, err in results[:limit]],
     )
 
 

@@ -112,9 +112,10 @@ uvicorn uniprotptmpy.server.app:app --reload
 ```
 
 This starts a FastAPI app exposing the database as both a JSON REST API
-(`GET /api/entries/{id}`, `/api/search`, `/api/entries/by-name/{name}`, …)
+(`GET /api/entries/{id}`, `/api/search`, `/api/entries/by-name/{name}`,
+`/api/search-mass?delta=79.9663&site=STY`, `/api/entries/by-site/{residue}`, …)
 and an [MCP](https://modelcontextprotocol.io) endpoint at `POST /mcp` with
-`get_by_id`, `get_by_name`, and `search` tools, for pointing LLM clients
+`get_by_id`, `get_by_name`, `search`, and `search_mass` tools, for pointing LLM clients
 directly at the UniProt PTM vocabulary:
 
 ```bash

@@ -81,7 +81,9 @@ stripped) -> `PtmDatabase` indexes by upper-cased `PTM-XXXX` id and lower-cased 
 | `GET /api/entries?limit=50&offset=0` | `EntryListResponse` (full entries; `limit` 1-500) |
 | `GET /api/entries/{id}` | `PtmEntry`; `PTM-0253` or `0253`; 404 if missing |
 | `GET /api/entries/by-name/{name}` | `PtmEntry`; case-insensitive exact name; 404 if missing |
-| `GET /api/search?q=...&limit=50` | `SearchResponse` of `PtmSummary` (`q` required, `limit` 1-500) |
+| `GET /api/entries/by-site/{residue}` | `SiteResponse` of `PtmSummary` (one residue; `N-term`/`C-term` empty; 422 if unknown) |
+| `GET /api/search?q=...&limit=50&offset=0` | `SearchResponse` of `PtmSummary` (`q` required, `limit` 1-500, `offset` >= 0) |
+| `GET /api/search-mass?delta=...&tolerance=0.01&site=&position=&limit=50` | `SearchMassResponse` of `MassMatch` (`PtmSummary` + signed `error`); 422 on `UniprotPtmError` |
 | `POST /mcp` | MCP streamable HTTP (stateless) |
 | `GET /docs`, `/redoc`, `/openapi.json` | FastAPI defaults |
 
@@ -97,6 +99,7 @@ Tools (all with `outputSchema`, results in `structuredContent`):
 - `get_by_id(id)` -> `PtmEntry | None`
 - `get_by_name(name)` -> `PtmEntry | None`
 - `search(query, limit=25)` -> `list[PtmSummary]`
+- `search_mass(delta, tolerance=0.01, site=None, position=None, limit=25)` -> `list[MassMatch]`
 
 `_MCPWrapper` builds a fresh `MCPServer` and session manager **per request**, because
 Vercel fires no ASGI lifespan events and `StreamableHTTPSessionManager.run()` can run
