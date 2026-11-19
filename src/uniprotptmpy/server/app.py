@@ -9,6 +9,7 @@ from typing import Annotated
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, Response
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import Field
 
@@ -105,9 +106,14 @@ def _build_mcp() -> MCPServer:
         signed difference ``delta - mass`` in Da. ``site`` narrows to residue letters (``"S"``,
         ``"STY"`` for any of them) or ``"N-term"``/``"C-term"``; ``position`` is one of
         ``"anywhere"``, ``"peptide n-term"``, ``"peptide c-term"``, ``"protein n-term"``,
-        ``"protein c-term"``. An unknown site or position is an error.
+        ``"protein c-term"``. An unknown site or position is an error naming the bad value.
         """
-        hits = _db.search_mass(delta, tolerance=tolerance, site=site, position=position)
+        try:
+            hits = _db.search_mass(delta, tolerance=tolerance, site=site, position=position)
+        except UniprotPtmError as exc:
+            # Without ToolError the SDK reports a crash, and the model is told only
+            # "Error executing tool search_mass" with no way to correct the call.
+            raise ToolError(str(exc)) from exc
         return [to_mass_match(e, err) for e, err in hits[:limit]]
 
     return mcp

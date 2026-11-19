@@ -13,6 +13,17 @@
   `/api/search` also accepts `offset` (default 0), so a client can page past the first 500
   results. The five existing routes and three existing tools are unchanged (#76).
 
+### Fixed
+
+- The MCP `search_mass` tool reported an unknown `site` or `position` as a crash, so the caller
+  received only `Error executing tool search_mass` with nothing to correct. It now raises the
+  SDK's `ToolError`, which carries the library's own message (`unknown site 'X9': use residue
+  letters ...`), matching what `GET /api/search-mass` already returns as a 422 `detail`. The
+  argument bounds the SDK validates (`limit`, `tolerance`) already named the field and are
+  unchanged.
+- `uniprotptmpy.server`'s module docstring listed only the five routes that predate #76; it now
+  also lists `GET /api/entries/by-site/{residue}` and `GET /api/search-mass`.
+
 ## [1.3.0] (2026-11-16)
 
 ### Added

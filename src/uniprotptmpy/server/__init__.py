@@ -11,7 +11,9 @@ Endpoints:
     GET  /api/entries
     GET  /api/entries/{id}
     GET  /api/entries/by-name/{name}
+    GET  /api/entries/by-site/{residue}
     GET  /api/search?q=...
+    GET  /api/search-mass?delta=...
     POST /mcp                          (Model Context Protocol)
 """
 

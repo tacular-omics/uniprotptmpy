@@ -380,10 +380,22 @@ def test_mcp_search_mass_matches_rest(mcp_client: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "extra",
-    [{"limit": 0}, {"limit": 501}, {"tolerance": -1}, {"site": "X9"}, {"position": "nowhere"}],
+    ("extra", "expected"),
+    [
+        ({"limit": 0}, "limit"),
+        ({"limit": 501}, "limit"),
+        ({"tolerance": -1}, "tolerance"),
+        ({"site": "X9"}, "unknown site 'X9'"),
+        ({"position": "nowhere"}, "unknown position 'nowhere'"),
+    ],
 )
-def test_mcp_search_mass_rejects_bad_arguments(mcp_client: TestClient, extra: dict) -> None:
+def test_mcp_search_mass_rejects_bad_arguments(mcp_client: TestClient, extra: dict, expected: str) -> None:
+    """The text must name what was rejected.
+
+    ``isError`` alone passes on a tree where the tool does not exist at all: an unknown
+    tool name also comes back as an error result (with ``Unknown tool: ...``), so only the
+    message distinguishes a rejected argument from a missing tool or a crash.
+    """
     _mcp(mcp_client, "initialize", _INIT_PARAMS)
     resp = _mcp(
         mcp_client,
@@ -392,3 +404,29 @@ def test_mcp_search_mass_rejects_bad_arguments(mcp_client: TestClient, extra: di
         req_id=2,
     )
     assert resp["result"]["isError"] is True
+    text = resp["result"]["content"][0]["text"]
+    assert expected in text, text
+    assert text != "Error executing tool search_mass"
+
+
+def test_mcp_search_mass_unknown_site_message_reaches_the_caller(mcp_client: TestClient) -> None:
+    """An unknown site is a failure we anticipate, so our own text must reach the model.
+
+    The MCP SDK gives the caller only ``Error executing tool <name>`` for an exception it
+    treats as a crash, and keeps the message only for a ``ToolError``. So this asserts the
+    library's own wording, which is the part a model can act on.
+    """
+    _mcp(mcp_client, "initialize", _INIT_PARAMS)
+    resp = _mcp(
+        mcp_client,
+        "tools/call",
+        {"name": "search_mass", "arguments": {"delta": 79.9663, "site": "X9"}},
+        req_id=2,
+    )
+    text = resp["result"]["content"][0]["text"]
+    assert resp["result"]["isError"] is True
+    assert "unknown site 'X9'" in text, text
+    assert "use residue letters" in text, text
+    # The same call through REST already names it; MCP must not say less.
+    detail = mcp_client.get("/api/search-mass", params={"delta": 79.9663, "site": "X9"}).json()["detail"]
+    assert "unknown site 'X9'" in detail
