@@ -15,6 +15,15 @@
 
 ### Fixed
 
+- Every `/api/*` route now answers an unknown query parameter with **422**, naming the parameter
+  and listing the ones the route accepts. They were silently ignored, so
+  `GET /api/search-mass?delta=79.966&tolerance=10&unit=ppm` returned 200 having searched a 10 Da
+  window, and a misspelled `tolernce=0.001` returned 200 having used the 0.01 default. One
+  app-wide dependency reads each route's own declared parameters, so a route added later is
+  covered automatically. **Who sees a difference:** a client that has been sending a parameter
+  this API never read now gets a 422 instead of a silently different result. `/` and `/data.json`
+  are deliberately unchanged, since a shared link to the browser page can carry a tracking
+  parameter and a 422 would hide the page.
 - The MCP `search_mass` tool reported an unknown `site` or `position` as a crash, so the caller
   received only `Error executing tool search_mass` with nothing to correct. It now raises the
   SDK's `ToolError`, which carries the library's own message (`unknown site 'X9': use residue
