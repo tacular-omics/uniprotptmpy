@@ -430,3 +430,75 @@ def test_mcp_search_mass_unknown_site_message_reaches_the_caller(mcp_client: Tes
     # The same call through REST already names it; MCP must not say less.
     detail = mcp_client.get("/api/search-mass", params={"delta": 79.9663, "site": "X9"}).json()["detail"]
     assert "unknown site 'X9'" in detail
+
+
+# --- Unknown query parameters (one app-wide dependency, not per-route code) ---
+
+#: One case per API route: path, a request the route accepts, and the names it declares.
+#: The declared names are written out here rather than read from the app, so a parameter
+#: renamed in the app fails this table instead of agreeing with itself.
+_ROUTE_CASES = [
+    ("/api/health", {}, set()),
+    ("/api/entries", {"limit": 2}, {"limit", "offset"}),
+    ("/api/entries/PTM-0253", {}, set()),
+    ("/api/entries/by-name/Phosphoserine", {}, set()),
+    ("/api/entries/by-site/S", {}, set()),
+    ("/api/search", {"q": "phospho"}, {"q", "limit", "offset"}),
+    ("/api/search-mass", {"delta": 79.9663}, {"delta", "tolerance", "site", "position", "limit"}),
+]
+
+
+@pytest.mark.parametrize(("path", "params", "declared"), _ROUTE_CASES)
+def test_rest_unknown_query_parameter_is_422(path: str, params: dict, declared: set[str]) -> None:
+    """Every API route names the unknown parameter and lists what it accepts."""
+    with TestClient(app) as client:
+        r = client.get(path, params={**params, "bogus": "1"})
+    assert r.status_code == 422, r.text
+    detail = r.json()["detail"]
+    assert "unknown query parameter 'bogus'" in detail, detail
+    expected_tail = ", ".join(sorted(declared)) if declared else "no query parameters"
+    assert detail.endswith(f"accepts: {expected_tail}"), detail
+
+
+@pytest.mark.parametrize(("path", "params", "declared"), _ROUTE_CASES)
+def test_rest_known_query_parameters_still_work(path: str, params: dict, declared: set[str]) -> None:
+    """The accepted request is unchanged, and no declared name is treated as unknown.
+
+    A declared name may still be rejected on its own merits (``site=1`` is not a residue),
+    so this asserts the name is not called unknown rather than asserting a 200.
+    """
+    with TestClient(app) as client:
+        assert client.get(path, params=params).status_code == 200
+        for name in declared:
+            r = client.get(path, params={**params, name: params.get(name, 1)})
+            assert "unknown query parameter" not in r.text, f"{path} called its own {name!r} unknown"
+
+
+def test_rest_unknown_query_parameter_names_every_unknown() -> None:
+    with TestClient(app) as client:
+        r = client.get("/api/search-mass", params={"delta": 79.9663, "unit": "ppm", "tolernce": "0.001"})
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert "unknown query parameters 'tolernce', 'unit'" in detail, detail
+    assert "accepts: delta, limit, position, site, tolerance" in detail, detail
+
+
+def test_rest_misspelled_parameter_no_longer_falls_back_to_the_default() -> None:
+    """``tolernce=0.001`` used to return 200 with the 0.01 default, silently."""
+    with TestClient(app) as client:
+        assert client.get("/api/search-mass", params={"delta": 79.9663, "tolernce": "0.001"}).status_code == 422
+        ok = client.get("/api/search-mass", params={"delta": 79.9663, "tolerance": "0.001"})
+    assert ok.status_code == 200
+    assert ok.json()["tolerance"] == 0.001
+
+
+def test_dashboard_routes_keep_ignoring_unknown_query_parameters() -> None:
+    """Deliberate exemption, not an oversight.
+
+    ``/`` and ``/data.json`` are opened in a browser, where a shared link can carry a
+    tracking parameter; a 422 would hide the page over a harmless extra. The API routes
+    above are machine-facing, where a silently ignored parameter is the worse failure.
+    """
+    with TestClient(app) as client:
+        assert client.get("/", params={"utm_source": "newsletter"}).status_code == 200
+        assert client.get("/data.json", params={"utm_source": "newsletter"}).status_code == 200
